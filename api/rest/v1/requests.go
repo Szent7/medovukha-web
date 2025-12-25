@@ -1,60 +1,36 @@
 package v1
 
 import (
-	"context"
-	"errors"
 	"fmt"
 	"medovukha/api/rest/v1/types"
-	"medovukha/services/docker"
 
 	"net/http"
-	"net/url"
-	"os"
-	"path/filepath"
-	"strings"
+	"net/rpc"
 
-	containers "medovukha/services/docker/containers"
-	images "medovukha/services/docker/images"
-	networks "medovukha/services/docker/networks"
-	volumes "medovukha/services/docker/volumes"
-	git "medovukha/services/git"
-
-	"github.com/docker/docker/api/types/build"
-	"github.com/docker/docker/api/types/filters"
 	"github.com/gin-gonic/gin"
 )
 
-// Containers
-func CreateTestContainer(c *gin.Context) {
-	cli, err := docker.CreateDockerClient()
-	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Docker client error"})
-		fmt.Printf("Docker client error: %s\n", err.Error())
-		return
-	}
-	defer cli.Close()
-
-	if err := containers.CreateTestContainer(cli); err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "CreateTestContainer error"})
-		fmt.Printf("CreateTestContainer error: %s\n", err.Error())
-		return
-	}
-
-	c.IndentedJSON(http.StatusOK, gin.H{"message": "Created TestContainer"})
+type API struct {
+	rpcClient   *rpc.Client
+	serviceName string
 }
 
-func GetContainerList(c *gin.Context) {
-	cli, err := docker.CreateDockerClient()
-	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Docker client error"})
-		fmt.Printf("Docker client error: %s\n", err.Error())
-		return
+func NewAPI(rpcClient *rpc.Client, serviceName string) *API {
+	return &API{
+		rpcClient:   rpcClient,
+		serviceName: serviceName,
 	}
-	defer cli.Close()
+}
 
-	conList, err := containers.GetContainerBaseInfoList(cli)
-	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "GetContainerList error"})
+func (a *API) Call(method string, args any, reply any) error {
+	return a.rpcClient.Call(a.serviceName+"."+method, args, reply)
+}
+
+// Containers
+func (a *API) GetContainerList(c *gin.Context) {
+	var conList []types.ContainerBaseInfo
+	if err := a.Call("GetContainerList", &types.Empty{}, &conList); err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "GetContainerList error" + err.Error()})
 		fmt.Printf("GetContainerList error: %s\n", err.Error())
 		return
 	}
@@ -62,244 +38,123 @@ func GetContainerList(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, conList)
 }
 
-func PauseContainerByID(c *gin.Context) {
-	var containerId struct {
-		Id string `json:"id"`
-	}
-	if err := c.BindJSON(&containerId); err != nil {
+func (a *API) PauseContainerByID(c *gin.Context) {
+	var args types.BaseID
+	if err := c.BindJSON(&args); err != nil {
 		return
 	}
 
-	if check, err := containers.CheckIsMedovukhaId(containerId.Id); err != nil {
-		return
-	} else if check {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": types.ErrContainerIsMedovukha.Error()})
-		return
-	}
-
-	cli, err := docker.CreateDockerClient()
-	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Docker client error"})
-		fmt.Printf("Docker client error: %s\n", err.Error())
-		return
-	}
-	defer cli.Close()
-
-	if err := containers.PauseContainerByID(cli, containerId.Id); err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "PauseContainerByID error"})
+	var message types.BaseMessage
+	if err := a.Call("PauseContainerByID", &args, &message); err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "PauseContainerByID error" + err.Error()})
 		fmt.Printf("PauseContainerByID error: %s\n", err.Error())
 		return
 	}
 
-	c.IndentedJSON(http.StatusOK, gin.H{"message": "Paused: " + containerId.Id})
+	c.IndentedJSON(http.StatusOK, message)
 }
 
-func UnpauseContainerByID(c *gin.Context) {
-	var containerId struct {
-		Id string `json:"id"`
-	}
-	if err := c.BindJSON(&containerId); err != nil {
+func (a *API) UnpauseContainerByID(c *gin.Context) {
+	var args types.BaseID
+	if err := c.BindJSON(&args); err != nil {
 		return
 	}
 
-	if check, err := containers.CheckIsMedovukhaId(containerId.Id); err != nil {
-		return
-	} else if check {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": types.ErrContainerIsMedovukha.Error()})
-		return
-	}
-
-	cli, err := docker.CreateDockerClient()
-	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Docker client error"})
-		fmt.Printf("Docker client error: %s\n", err.Error())
-		return
-	}
-	defer cli.Close()
-
-	if err := containers.UnpauseContainerByID(cli, containerId.Id); err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "UnpauseContainerByID error"})
+	var message types.BaseMessage
+	if err := a.Call("UnpauseContainerByID", &args, &message); err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "UnpauseContainerByID error" + err.Error()})
 		fmt.Printf("UnpauseContainerByID error: %s\n", err.Error())
 		return
 	}
 
-	c.IndentedJSON(http.StatusOK, gin.H{"message": "Unpaused: " + containerId.Id})
+	c.IndentedJSON(http.StatusOK, message)
 }
 
-func KillContainerByID(c *gin.Context) {
-	var containerId struct {
-		Id string `json:"id"`
-	}
-	if err := c.BindJSON(&containerId); err != nil {
+func (a *API) KillContainerByID(c *gin.Context) {
+	var args types.BaseID
+	if err := c.BindJSON(&args); err != nil {
 		return
 	}
 
-	if check, err := containers.CheckIsMedovukhaId(containerId.Id); err != nil {
-		return
-	} else if check {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": types.ErrContainerIsMedovukha.Error()})
-		return
-	}
-
-	cli, err := docker.CreateDockerClient()
-	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Docker client error"})
-		fmt.Printf("Docker client error: %s\n", err.Error())
-		return
-	}
-	defer cli.Close()
-
-	if err := containers.KillContainerByID(cli, containerId.Id); err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "KillContainerByID error"})
+	var message types.BaseMessage
+	if err := a.Call("KillContainerByID", &args, &message); err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "KillContainerByID error" + err.Error()})
 		fmt.Printf("KillContainerByID error: %s\n", err.Error())
 		return
 	}
 
-	c.IndentedJSON(http.StatusOK, gin.H{"message": "Killed: " + containerId.Id})
+	c.IndentedJSON(http.StatusOK, message)
 }
 
-func StartContainerByID(c *gin.Context) {
-	var containerId struct {
-		Id string `json:"id"`
-	}
-	if err := c.BindJSON(&containerId); err != nil {
+func (a *API) StartContainerByID(c *gin.Context) {
+	var args types.BaseID
+	if err := c.BindJSON(&args); err != nil {
 		return
 	}
 
-	if check, err := containers.CheckIsMedovukhaId(containerId.Id); err != nil {
-		return
-	} else if check {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": types.ErrContainerIsMedovukha.Error()})
-		return
-	}
-
-	cli, err := docker.CreateDockerClient()
-	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Docker client error"})
-		fmt.Printf("Docker client error: %s\n", err.Error())
-		return
-	}
-	defer cli.Close()
-
-	if err := containers.StartContainerByID(cli, containerId.Id); err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "StartContainerByID error"})
+	var message types.BaseMessage
+	if err := a.Call("StartContainerByID", &args, &message); err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "StartContainerByID error" + err.Error()})
 		fmt.Printf("StartContainerByID error: %s\n", err.Error())
 		return
 	}
 
-	c.IndentedJSON(http.StatusOK, gin.H{"message": "Started: " + containerId.Id})
+	c.IndentedJSON(http.StatusOK, message)
 }
 
-func StopContainerByID(c *gin.Context) {
-	var containerId struct {
-		Id string `json:"id"`
-	}
-	if err := c.BindJSON(&containerId); err != nil {
+func (a *API) StopContainerByID(c *gin.Context) {
+	var args types.BaseID
+	if err := c.BindJSON(&args); err != nil {
 		return
 	}
 
-	if check, err := containers.CheckIsMedovukhaId(containerId.Id); err != nil {
-		return
-	} else if check {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": types.ErrContainerIsMedovukha.Error()})
-		return
-	}
-
-	cli, err := docker.CreateDockerClient()
-	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Docker client error"})
-		fmt.Printf("Docker client error: %s\n", err.Error())
-		return
-	}
-	defer cli.Close()
-
-	if err := containers.StopContainerByID(cli, containerId.Id); err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "StopContainerByID error"})
+	var message types.BaseMessage
+	if err := a.Call("StopContainerByID", &args, &message); err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "StopContainerByID error" + err.Error()})
 		fmt.Printf("StopContainerByID error: %s\n", err.Error())
 		return
 	}
 
-	c.IndentedJSON(http.StatusOK, gin.H{"message": "Stopped: " + containerId.Id})
+	c.IndentedJSON(http.StatusOK, message)
 }
 
-func RestartContainerByID(c *gin.Context) {
-	var containerId struct {
-		Id string `json:"id"`
-	}
-	if err := c.BindJSON(&containerId); err != nil {
+func (a *API) RestartContainerByID(c *gin.Context) {
+	var args types.BaseID
+	if err := c.BindJSON(&args); err != nil {
 		return
 	}
 
-	if check, err := containers.CheckIsMedovukhaId(containerId.Id); err != nil {
-		return
-	} else if check {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": types.ErrContainerIsMedovukha.Error()})
-		return
-	}
-
-	cli, err := docker.CreateDockerClient()
-	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Docker client error"})
-		fmt.Printf("Docker client error: %s\n", err.Error())
-		return
-	}
-	defer cli.Close()
-
-	if err := containers.RestartContainerByID(cli, containerId.Id); err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "RestartContainerByID error"})
+	var message types.BaseMessage
+	if err := a.Call("RestartContainerByID", &args, &message); err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "RestartContainerByID error" + err.Error()})
 		fmt.Printf("RestartContainerByID error: %s\n", err.Error())
 		return
 	}
 
-	c.IndentedJSON(http.StatusOK, gin.H{"message": "Restarted: " + containerId.Id})
+	c.IndentedJSON(http.StatusOK, message)
 }
 
-func RemoveContainerByID(c *gin.Context) {
-	var containerId struct {
-		Id string `json:"id"`
-	}
-	if err := c.BindJSON(&containerId); err != nil {
+func (a *API) RemoveContainerByID(c *gin.Context) {
+	var args types.BaseID
+	if err := c.BindJSON(&args); err != nil {
 		return
 	}
 
-	if check, err := containers.CheckIsMedovukhaId(containerId.Id); err != nil {
-		return
-	} else if check {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": types.ErrContainerIsMedovukha.Error()})
-		return
-	}
-
-	cli, err := docker.CreateDockerClient()
-	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Docker client error"})
-		fmt.Printf("Docker client error: %s\n", err.Error())
-		return
-	}
-	defer cli.Close()
-
-	if err := containers.RemoveContainerByID(cli, containerId.Id); err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "RemoveContainerByID error"})
+	var message types.BaseMessage
+	if err := a.Call("RemoveContainerByID", &args, &message); err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "RemoveContainerByID error" + err.Error()})
 		fmt.Printf("RemoveContainerByID error: %s\n", err.Error())
 		return
 	}
 
-	c.IndentedJSON(http.StatusOK, gin.H{"message": "Removed: " + containerId.Id})
+	c.IndentedJSON(http.StatusOK, message)
 }
 
-//Images
-
-func GetImageList(c *gin.Context) {
-	cli, err := docker.CreateDockerClient()
-	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Docker client error"})
-		fmt.Printf("Docker client error: %s\n", err.Error())
-		return
-	}
-	defer cli.Close()
-
-	imgList, err := images.GetImageList(cli)
-	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "GetImageList error"})
+// Images
+func (a *API) GetImageList(c *gin.Context) {
+	var imgList []types.ImageBaseInfo
+	if err := a.Call("GetImageList", &types.Empty{}, &imgList); err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "GetImageList error" + err.Error()})
 		fmt.Printf("GetImageList error: %s\n", err.Error())
 		return
 	}
@@ -308,258 +163,42 @@ func GetImageList(c *gin.Context) {
 }
 
 // Networks
-func GetNetworkList(c *gin.Context) {
-	cli, err := docker.CreateDockerClient()
-	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Docker client error"})
-		fmt.Printf("Docker client error: %s\n", err.Error())
-		return
-	}
-	defer cli.Close()
-
-	imgList, err := networks.GetNetworkList(cli)
-	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "GetNetworkList error"})
+func (a *API) GetNetworkList(c *gin.Context) {
+	var ntwList []types.NetworkBaseInfo
+	if err := a.Call("GetNetworkList", &types.Empty{}, &ntwList); err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "GetNetworkList error" + err.Error()})
 		fmt.Printf("GetNetworkList error: %s\n", err.Error())
 		return
 	}
 
-	c.IndentedJSON(http.StatusOK, imgList)
+	c.IndentedJSON(http.StatusOK, ntwList)
 }
 
 // Volumes
-func GetVolumeList(c *gin.Context) {
-	cli, err := docker.CreateDockerClient()
-	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Docker client error"})
-		fmt.Printf("Docker client error: %s\n", err.Error())
-		return
-	}
-	defer cli.Close()
-
-	imgList, err := volumes.GetVolumeList(cli)
-	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "GetVolumeList error"})
+func (a *API) GetVolumeList(c *gin.Context) {
+	var vlmList []types.VolumeBaseInfo
+	if err := a.Call("GetVolumeList", &types.Empty{}, &vlmList); err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "GetVolumeList error" + err.Error()})
 		fmt.Printf("GetVolumeList error: %s\n", err.Error())
 		return
 	}
 
-	c.IndentedJSON(http.StatusOK, imgList)
+	c.IndentedJSON(http.StatusOK, vlmList)
 }
 
 // Deploy
-func CreateFromGit(c *gin.Context) {
-	ctx := context.Background()
-	//
-	//
-	// Parsing Request
-	//
-	//
+func (a *API) CreateFromGit(c *gin.Context) {
 	var NewDeploy types.DeployFromGit
 	if err := c.BindJSON(&NewDeploy); err != nil {
 		return
 	}
-	//
-	//
-	// Create Docker Client
-	//
-	//
-	cli, err := docker.CreateDockerClient()
-	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Docker client error"})
-		fmt.Printf("Docker client error: %s\n", err.Error())
+
+	var message types.BaseMessage
+	if err := a.Call("CreateFromGit", &NewDeploy, &message); err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "CreateFromGit error" + err.Error()})
+		fmt.Printf("CreateFromGit error: %s\n", err.Error())
 		return
 	}
-	defer cli.Close()
-	//
-	//
-	// Clonning repo from git into temp dir
-	//
-	//
-	tempDir, err := os.MkdirTemp("", "docker-repo")
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-	fmt.Println("Created tempDir: " + tempDir)
-	defer os.RemoveAll(tempDir)
-	defer fmt.Println("Deleted tempDir: " + tempDir)
 
-	if err := git.CloneRepo(&git.RepoCloner{}, NewDeploy.URL, tempDir); err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "CloneRepo error"})
-		fmt.Printf("CloneRepo error: %s\n", err.Error())
-		return
-	}
-	//
-	//
-	// Check Dockerfile in request
-	//
-	//
-	dockerfileDir := filepath.Join(tempDir, "Dockerfile")
-	dockercomposeDir := filepath.Join(tempDir, "docker-compose.yml")
-	if NewDeploy.Dockerfile == "" {
-		// Dockerfile is not specified in the request, check in the directory
-		// If Dockerfile doesn`t exist, throw error
-		if !fileExists(dockerfileDir) {
-			c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Dockerfile empty error"})
-			fmt.Println("Dockerfile empty error")
-			return
-		}
-	} else {
-		// If Dockerfile specified in the request, rewrite/create new Dockerfile
-		if err := createFile(dockerfileDir, []byte(NewDeploy.Dockerfile)); err != nil {
-			c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Dockerfile write error"})
-			fmt.Printf("Dockerfile write error: %s\n", err.Error())
-			return
-		} else {
-			fmt.Println("Dockerfile redefined")
-		}
-	}
-	//
-	//
-	// Parse tags from repo (for image name)
-	//
-	//
-	repo, err := repoFromURL(NewDeploy.URL)
-	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Repo error"})
-		fmt.Printf("Repo error: %s\n", err.Error())
-		return
-	}
-	tags := []string{repo + ":latest"} //NewDeploy.URL
-	//
-	//
-	// Delete old containers
-	//
-	//
-	if err := containers.RemoveContainerByImage(ctx, cli, tags[0]); err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Error remove container"})
-		fmt.Printf("Error remove container: %s\n", err.Error())
-		return
-	}
-	//
-	//
-	// Delete old images
-	//
-	//
-	if err := images.RemoveImageByTag(ctx, cli, tags[0]); err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Error remove image"})
-		fmt.Printf("Error remove image: %s\n", err.Error())
-		return
-	}
-	//
-	//
-	// Build image
-	//
-	//
-	newImageId, err := images.BuildImageNew(cli, tempDir, tags)
-	if err != nil {
-		fmt.Println(err.Error())
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Docker client error"})
-		fmt.Printf("Docker client error: %s\n", err.Error())
-		return
-	}
-	//
-	//
-	// Clear build cache
-	//
-	//
-	pruneFilters := filters.NewArgs()
-	pruneFilters.Add("dangling", "true")
-
-	_, err = cli.ImagesPrune(ctx, pruneFilters)
-	if err != nil {
-		fmt.Println(err.Error())
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Docker client error"})
-		fmt.Printf("Docker client error: %s\n", err.Error())
-		return
-	}
-	_, err = cli.BuildCachePrune(ctx, build.CachePruneOptions{All: true})
-	if err != nil {
-		fmt.Println(err.Error())
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Docker client error"})
-		fmt.Printf("Docker client error: %s\n", err.Error())
-		return
-	}
-	//
-	//
-	// Check DockerCompose in request
-	//
-	//
-	if NewDeploy.DockerCompose == "" {
-		// DockerCompose is not specified in the request, check DockerRun in the request
-		if NewDeploy.DockerRun == "" {
-			// DockerRun is not specified in the request, check DockerCompose in the directory
-			if !fileExists(dockercomposeDir) {
-				c.IndentedJSON(http.StatusOK, gin.H{"message": "created but not launched: " + newImageId})
-				fmt.Println("Created image, but not command to launch container")
-				return
-			} else {
-				if err := containers.ExecDockerComposeUp(dockercomposeDir); err != nil {
-					c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "the image was created, but an error occurred when starting the container (dockerCompose)"})
-					return
-				}
-			}
-		} else {
-			if err := containers.ExecDockerRun(NewDeploy.DockerRun); err != nil {
-				c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "the image was created, but an error occurred when starting the container (dockerRun)"})
-				return
-			}
-		}
-	} else {
-		// If Dockerfile specified in the request, rewrite/create new Dockerfile
-		if err := createFile(dockercomposeDir, []byte(NewDeploy.DockerCompose)); err != nil {
-			c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "DockerCompose write error"})
-			fmt.Printf("DockerCompose write error: %s\n", err.Error())
-			return
-		} else {
-			fmt.Println("DockerCompose redefined")
-			if err := containers.ExecDockerComposeUp(dockercomposeDir); err != nil {
-				c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "the image was created, but an error occurred when starting the container (dockerCompose)"})
-				return
-			}
-		}
-	}
-
-	c.IndentedJSON(http.StatusOK, gin.H{"message": "created and launched: " + newImageId})
-}
-
-func fileExists(path string) bool {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true
-	}
-	if errors.Is(err, os.ErrNotExist) {
-		return false
-	}
-
-	fmt.Println("ошибка при проверке:", err)
-	return false
-}
-
-func createFile(path string, content []byte) error {
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	if _, err := f.Write(content); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func repoFromURL(raw string) (repo string, err error) {
-	u, err := url.Parse(raw)
-	if err != nil {
-		return "", err
-	}
-
-	// u.Path выглядит как "/owner/repo" (или "/owner/repo/…")
-	parts := strings.Split(strings.Trim(u.Path, "/"), "/")
-	if len(parts) < 2 {
-		return "", fmt.Errorf("invalid GitHub URL: %s", raw)
-	}
-	return parts[0] + "/" + parts[1], nil
+	c.IndentedJSON(http.StatusOK, message)
 }

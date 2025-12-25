@@ -2,7 +2,6 @@ package websockets
 
 import (
 	"log"
-	"medovukha/services/docker/containers"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -22,34 +21,34 @@ type wsHub struct {
 	unregister chan *websocket.Conn
 }
 
-func (h *wsHub) Run(manager *containers.DockerStreamManager) {
-	for {
-		select {
-		case conn := <-h.register:
-			{
-				h.conns[conn] = true
-				manager.OnClientConnected()
-			}
-		case conn := <-h.unregister:
-			{
-				if _, ok := h.conns[conn]; ok {
-					delete(h.conns, conn)
-					conn.Close()
-				}
-				manager.OnClientDisconnected()
-			}
-		case msg := <-h.broadcast:
-			{
-				for conn := range h.conns {
-					if err := conn.WriteJSON(msg); err != nil {
-						conn.Close()
-						delete(h.conns, conn)
-					}
-				}
-			}
-		}
-	}
-}
+// func (h *wsHub) Run(manager *containers.DockerStreamManager) {
+// 	for {
+// 		select {
+// 		case conn := <-h.register:
+// 			{
+// 				h.conns[conn] = true
+// 				manager.OnClientConnected()
+// 			}
+// 		case conn := <-h.unregister:
+// 			{
+// 				if _, ok := h.conns[conn]; ok {
+// 					delete(h.conns, conn)
+// 					conn.Close()
+// 				}
+// 				manager.OnClientDisconnected()
+// 			}
+// 		case msg := <-h.broadcast:
+// 			{
+// 				for conn := range h.conns {
+// 					if err := conn.WriteJSON(msg); err != nil {
+// 						conn.Close()
+// 						delete(h.conns, conn)
+// 					}
+// 				}
+// 			}
+// 		}
+// 	}
+// }
 
 func NewHub() *wsHub {
 	return &wsHub{
