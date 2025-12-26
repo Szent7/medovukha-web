@@ -1,15 +1,15 @@
 <script lang="ts" context="module">
 	import axios from 'axios';
 	import {
-		ContainerBaseInfoScheme,
-		ImageBaseInfoScheme,
-		NetworkBaseInfoScheme,
-		VolumeBaseInfoScheme,
-		type ContainerBaseInfo,
+		ListContainerBaseInfoScheme,
+		ListImageBaseInfoScheme,
+		ListNetworkBaseInfoScheme,
+		ListVolumeBaseInfoScheme,
+		type ListContainerBaseInfo,
 		type ContainerIdMessage,
-		type ImageBaseInfo,
-		type NetworkBaseInfo,
-		type VolumeBaseInfo
+		type ListImageBaseInfo,
+		type ListNetworkBaseInfo,
+		type ListVolumeBaseInfo
 	} from './types.svelte';
 
 	export async function PingBack() {
@@ -21,7 +21,7 @@
 	export async function GetContainerList() {
 		try {
 			const response = await axios.get('http://localhost:10015/rest/v1/getContainerList');
-			const containers: ContainerBaseInfo = ContainerBaseInfoScheme.parse(response.data);
+			const containers: ListContainerBaseInfo = ListContainerBaseInfoScheme.parse(response.data);
 			//console.log("responseData:" + containers);
 			return containers;
 		} catch (error) {
@@ -166,7 +166,7 @@
 	export async function GetImageList() {
 		try {
 			const response = await axios.get('http://localhost:10015/rest/v1/getImageList');
-			const images: ImageBaseInfo = ImageBaseInfoScheme.parse(response.data);
+			const images: ListImageBaseInfo = ListImageBaseInfoScheme.parse(response.data);
 			//console.log("responseData:" + containers);
 			return images;
 		} catch (error) {
@@ -178,7 +178,7 @@
 	export async function GetNetworkList() {
 		try {
 			const response = await axios.get('http://localhost:10015/rest/v1/getNetworkList');
-			const networks: NetworkBaseInfo = NetworkBaseInfoScheme.parse(response.data);
+			const networks: ListNetworkBaseInfo = ListNetworkBaseInfoScheme.parse(response.data);
 			//console.log("responseData:" + containers);
 			return networks;
 		} catch (error) {
@@ -190,7 +190,7 @@
 	export async function GetVolumeList() {
 		try {
 			const response = await axios.get('http://localhost:10015/rest/v1/getVolumeList');
-			const volumes: VolumeBaseInfo = VolumeBaseInfoScheme.parse(response.data);
+			const volumes: ListVolumeBaseInfo = ListVolumeBaseInfoScheme.parse(response.data);
 			//console.log("responseData:" + containers);
 			return volumes;
 		} catch (error) {

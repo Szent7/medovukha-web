@@ -5,9 +5,9 @@
 	import Frame from '@templates/frame.svelte';
 	import logo from '@assets/logo_small.svg';
 	import { GetNetworkList } from '@lib/api/api.svelte';
-	import type { NetworkBaseInfo } from '@lib/api/types.svelte';
+	import type { ListNetworkBaseInfo } from '@lib/api/types.svelte';
 
-	let netList: NetworkBaseInfo = [];
+	let netList: ListNetworkBaseInfo = [];
 	let loading = true;
 	let selectedIds: string[] = [];
 	let buttonIds = new Map<string, boolean>([['remove-button', false]]);
@@ -72,8 +72,10 @@
 		const elements = document.querySelectorAll('input[name=checkbox-item]');
 		if (elements !== null) {
 			Array.prototype.forEach.call(elements, function (item) {
-				updateSelected(item.id, checked);
-				item.checked = checked;
+				if (item.disabled != true) {
+					updateSelected(item.id, checked);
+					item.checked = checked;
+				}
 			});
 		}
 	}
@@ -177,7 +179,7 @@
 			</tr>
 		</thead>
 		<tbody>
-			{#each netList as network}
+			{#each netList.items as network}
 				<tr>
 					<td>
 						{#if network.dockerNetwork}
@@ -197,10 +199,14 @@
 					<td>{network.name}</td>
 					<td>{network.id}</td>
 					<td>{network.driver}</td>
-					<td>{network.enableIPv6}</td>
+					{#if network.enableIPv6 == undefined}
+						<td>false</td>
+					{:else}
+						<td>{network.enableIPv6}</td>
+					{/if}
 					<td>{network.ipamDriver}</td>
 					<td>
-						{#if network.subnet.length == 0}
+						{#if network.subnet == undefined || network.subnet.length == 0}
 							-
 						{:else}
 							{#each network.subnet as sn}
@@ -213,7 +219,7 @@
 						{/if}
 					</td>
 					<td>
-						{#if network.gateway.length == 0}
+						{#if network.gateway == undefined || network.gateway.length == 0}
 							-
 						{:else}
 							{#each network.gateway as gw}
@@ -225,7 +231,11 @@
 							{/each}
 						{/if}
 					</td>
-					<td>{network.attachable}</td>
+					{#if network.attachable == undefined}
+						<td>false</td>
+					{:else}
+						<td>{network.attachable}</td>
+					{/if}
 				</tr>
 			{/each}
 		</tbody>

@@ -5,11 +5,11 @@
 	import Frame from '@templates/frame.svelte';
 	import logo from '@assets/logo_small.svg';
 	import { GetImageList } from '@lib/api/api.svelte';
-	import type { ImageBaseInfo } from '@lib/api/types.svelte';
+	import type { ListImageBaseInfo } from '@lib/api/types.svelte';
 	import { UnixTimeFormat } from '@lib/time.svelte';
 	import { SizeConvert } from '@lib/size.svelte';
 
-	let imgList: ImageBaseInfo = [];
+	let imgList: ListImageBaseInfo = [];
 	let loading = true;
 	let selectedIds: string[] = [];
 	let buttonIds = new Map<string, boolean>([['remove-button', false]]);
@@ -175,7 +175,7 @@
 			</tr>
 		</thead>
 		<tbody>
-			{#each imgList as image}
+			{#each imgList.items as image}
 				<tr>
 					<td>
 						<input

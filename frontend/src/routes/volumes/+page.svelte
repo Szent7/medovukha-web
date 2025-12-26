@@ -5,9 +5,9 @@
 	import Frame from '@templates/frame.svelte';
 	import logo from '@assets/logo_small.svg';
 	import { GetVolumeList } from '@lib/api/api.svelte';
-	import type { VolumeBaseInfo } from '@lib/api/types.svelte';
+	import type { ListVolumeBaseInfo } from '@lib/api/types.svelte';
 
-	let volList: VolumeBaseInfo = [];
+	let volList: ListVolumeBaseInfo = [];
 	let loading = true;
 	let selectedIds: string[] = [];
 	let buttonIds = new Map<string, boolean>([['remove-button', false]]);
@@ -173,7 +173,7 @@
 			</tr>
 		</thead>
 		<tbody>
-			{#each volList as volume}
+			{#each volList.items as volume}
 				<tr>
 					<td>
 						<input

@@ -1,34 +1,49 @@
 package main
 
 import (
+	"context"
 	"log"
-	"medovukha/api/rest/middlewares"
-	v1 "medovukha/api/rest/v1"
 	"net"
-	"net/rpc"
+	"time"
+
+	dockerpb "github.com/Szent7/medovukha-web/api/docker/v1"
+	"github.com/Szent7/medovukha-web/api/rest/middlewares"
+	rest "github.com/Szent7/medovukha-web/api/rest/v1"
+	"github.com/Szent7/medovukha-web/api/websockets"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	const socketPath = "/tmp/medovukha-core.sock"
-	const serverName = "MedovukhaCore"
-	conn, err := net.Dial("unix", socketPath)
+	const socketPath = "unix:/tmp/medovukha-core.sock"
+
+	//ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	//defer cancel()
+
+	conn, err := grpc.NewClient(
+		socketPath,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithContextDialer(func(ctx context.Context, addr string) (net.Conn, error) {
+			return net.DialTimeout("unix", addr[len("unix:"):], 5*time.Second)
+		}),
+	)
 	if err != nil {
-		log.Fatalf("cannot connect to medovukha-core: %s", err.Error())
+		log.Fatalf("failed to create grpc client: %s", err.Error())
 	}
+	defer conn.Close()
 
-	rpcClient := rpc.NewClient(conn)
-	defer rpcClient.Close()
+	rpcClient := dockerpb.NewDockerServiceClient(conn)
 
-	api := v1.NewAPI(rpcClient, serverName)
+	api := rest.NewAPI(rpcClient)
 
-	log.Printf("%s connected to %s\n", serverName, socketPath)
+	log.Printf("connected to %s\n", socketPath)
 
 	router := gin.Default()
 
-	// wsHub := websockets.NewHub()
-	// go wsHub.Run()
+	wsHub := websockets.NewHub(api)
+	go wsHub.Run()
 
 	router.Static("/_app/immutable/", "./build/_app/immutable/")
 	router.NoRoute(func(c *gin.Context) {
@@ -36,7 +51,7 @@ func main() {
 	})
 
 	//! dev headers
-	router.Use(middlewares.CORSMiddleware())
+	router.Use(middlewares.CORSMiddleware(), middlewares.TimeoutMiddleware(2*time.Minute))
 
 	router.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{
@@ -44,10 +59,10 @@ func main() {
 		})
 	})
 
-	// ws := router.Group("/ws")
-	// {
-	// 	ws.GET("/containerEvents", websockets.WsHandler(wsHub))
-	// }
+	ws := router.Group("/ws")
+	{
+		ws.GET("/containerEvents", websockets.WsHandler(wsHub))
+	}
 
 	rest := router.Group("/rest")
 	{
@@ -55,7 +70,7 @@ func main() {
 		{
 			//Containers
 			v1.GET("/getContainerList", api.GetContainerList)
-			v1.POST("/pauseContainerByid", api.PauseContainerByID)
+			v1.POST("/pauseContainerById", api.PauseContainerByID)
 			v1.POST("/unpauseContainerById", api.UnpauseContainerByID)
 			v1.POST("/killContainerById", api.KillContainerByID)
 			v1.POST("/startContainerById", api.StartContainerByID)

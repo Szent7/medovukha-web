@@ -1,8 +1,13 @@
 package middlewares
 
-import "github.com/gin-gonic/gin"
+import (
+	"context"
+	"time"
 
-//! dev headers
+	"github.com/gin-gonic/gin"
+)
+
+// ! dev headers
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
@@ -15,6 +20,15 @@ func CORSMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		c.Next()
+	}
+}
+
+func TimeoutMiddleware(d time.Duration) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		ctx, cancel := context.WithTimeout(c.Request.Context(), d)
+		defer cancel()
+		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	}
 }
