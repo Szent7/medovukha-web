@@ -1,17 +1,48 @@
 package main
 
 import (
-	"medovukha/api/rest/middlewares"
-	restapi "medovukha/api/rest/v1"
+	"context"
+	"log"
+	"net"
+	"time"
+
+	dockerpb "github.com/Szent7/medovukha-web/api/docker/v1"
+	"github.com/Szent7/medovukha-web/api/rest/middlewares"
+	rest "github.com/Szent7/medovukha-web/api/rest/v1"
+	"github.com/Szent7/medovukha-web/api/websockets"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
+	const socketPath = "unix:/tmp/medovukha-core.sock"
+
+	//ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	//defer cancel()
+
+	conn, err := grpc.NewClient(
+		socketPath,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithContextDialer(func(ctx context.Context, addr string) (net.Conn, error) {
+			return net.DialTimeout("unix", addr[len("unix:"):], 5*time.Second)
+		}),
+	)
+	if err != nil {
+		log.Fatalf("failed to create grpc client: %s", err.Error())
+	}
+	defer conn.Close()
+
+	rpcClient := dockerpb.NewDockerServiceClient(conn)
+
+	api := rest.NewAPI(rpcClient)
+
+	log.Printf("connected to %s\n", socketPath)
+
 	router := gin.Default()
 
-	// wsHub := websockets.NewHub()
-	// go wsHub.Run()
+	wsHub := websockets.NewHub(api)
 
 	router.Static("/_app/immutable/", "./build/_app/immutable/")
 	router.NoRoute(func(c *gin.Context) {
@@ -19,7 +50,7 @@ func main() {
 	})
 
 	//! dev headers
-	router.Use(middlewares.CORSMiddleware())
+	router.Use(middlewares.CORSMiddleware(), middlewares.TimeoutMiddleware(2*time.Minute))
 
 	router.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{
@@ -27,34 +58,33 @@ func main() {
 		})
 	})
 
-	// ws := router.Group("/ws")
-	// {
-	// 	ws.GET("/containerEvents", websockets.WsHandler(wsHub))
-	// }
+	ws := router.Group("/ws")
+	{
+		ws.GET("/containerEvents", websockets.WsContainerEventsHandler(wsHub))
+		ws.GET("/buildLogs", websockets.WsBuildLogsHandler(wsHub))
+	}
 
 	rest := router.Group("/rest")
 	{
 		v1 := rest.Group("/v1")
 		{
 			//Containers
-			v1.POST("/createTest", restapi.CreateTestContainer)
-			v1.GET("/getContainerList", restapi.GetContainerList)
-			v1.POST("/pauseContainerByid", restapi.PauseContainerByID)
-			v1.POST("/unpauseContainerById", restapi.UnpauseContainerByID)
-			v1.POST("/killContainerById", restapi.KillContainerByID)
-			v1.POST("/startContainerById", restapi.StartContainerByID)
-			v1.POST("/stopContainerById", restapi.StopContainerByID)
-			v1.POST("/restartContainerById", restapi.RestartContainerByID)
-			v1.POST("/removeContainerById", restapi.RemoveContainerByID)
+			v1.GET("/getContainerList", api.GetContainerList)
+			v1.POST("/pauseContainerById", api.PauseContainerByID)
+			v1.POST("/unpauseContainerById", api.UnpauseContainerByID)
+			v1.POST("/killContainerById", api.KillContainerByID)
+			v1.POST("/startContainerById", api.StartContainerByID)
+			v1.POST("/stopContainerById", api.StopContainerByID)
+			v1.POST("/restartContainerById", api.RestartContainerByID)
+			v1.POST("/removeContainerById", api.RemoveContainerByID)
 			//Images
-			v1.GET("/getImageList", restapi.GetImageList)
-			//v1.POST("/buildImageByRepo", restapi.BuildImageByRepo)
+			v1.GET("/getImageList", api.GetImageList)
 			//Networks
-			v1.GET("/getNetworkList", restapi.GetNetworkList)
+			v1.GET("/getNetworkList", api.GetNetworkList)
 			//Volumes
-			v1.GET("/getVolumeList", restapi.GetVolumeList)
+			v1.GET("/getVolumeList", api.GetVolumeList)
 			//Deploy
-			v1.POST("/createFromGit", restapi.CreateFromGit)
+			v1.POST("/createFromGit", api.CreateFromGit)
 		}
 	}
 

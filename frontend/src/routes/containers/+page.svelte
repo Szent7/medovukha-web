@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import FrameElement from '@templates/frameElement.svelte';
 	import Sidebar from '@templates/sidebar.svelte';
 	import Frame from '@templates/frame.svelte';
 	import logo from '@assets/logo_small.svg';
 	import { GetContainerList } from '@lib/api/api.svelte';
-	import type { ContainerBaseInfo } from '@lib/api/types.svelte';
+	import type { ListContainerBaseInfo } from '@lib/api/types.svelte';
 	import { UnixTimeFormat } from '@lib/time.svelte';
 	import {
 		KillContainer,
@@ -16,8 +16,9 @@
 		StopContainer,
 		RestartContainer
 	} from '@lib/containerActions.svelte';
+	import { containerEventSchema, containerEventsStore } from '@stores/container_events';
 
-	let conList: ContainerBaseInfo = [];
+	let conList: ListContainerBaseInfo = [];
 	let loading = true;
 	let selectedIds: string[] = [];
 	let buttonIds = new Map<string, boolean>([
@@ -58,18 +59,77 @@
 		getData();
 	};
 
-	onMount(updateContainerList);
+	let socket: WebSocket | null = null;
 
-	function CheckIsMedovukha(id: string): boolean {
-		let isMedovukha: boolean = false;
-		conList.forEach((container) => {
-			if (container.id == id) {
-				isMedovukha = container.isMedovukha;
-				return;
+	const actionToState: Record<string, string> = {
+		start: 'running',
+		restart: 'running',
+		unpause: 'running',
+		stop: 'exited',
+		kill: 'exited',
+		die: 'exited',
+		pause: 'paused'
+	};
+
+	onMount(() => {
+		updateContainerList();
+		const WS_URL = 'ws://localhost:10015/ws/containerEvents';
+
+		socket = new WebSocket(WS_URL);
+
+		socket.addEventListener('open', () => {
+			console.log('WebSocket connected');
+		});
+
+		function setContainerState(id: string, newState: string) {
+			const idx = conList.items.findIndex((c) => c.id === id);
+			if (idx === -1) return;
+
+			const newItems = [...conList.items];
+			newItems[idx] = { ...newItems[idx], state: newState };
+			conList = { items: newItems };
+		}
+
+		socket.addEventListener('message', (e) => {
+			try {
+				const parsed = containerEventSchema.parse(JSON.parse(e.data));
+
+				const action = parsed.action;
+				const id = parsed.actor.id;
+
+				console.log(action + ' ' + id);
+
+				if (
+					action === 'create' ||
+					action === 'delete' ||
+					action === 'remove' ||
+					action === 'destroy'
+				) {
+					updateContainerList();
+					return;
+				}
+
+				const newState = actionToState[action];
+				if (newState) setContainerState(id, newState);
+
+				//containerEventsStore.set(parsed);
+			} catch (err) {
+				console.warn('Получено недопустимое сообщение:', err);
 			}
 		});
-		return isMedovukha;
-	}
+
+		socket.addEventListener('error', (e) => {
+			console.error('WebSocket error:', e);
+		});
+
+		socket.addEventListener('close', () => {
+			console.log('WebSocket close');
+		});
+	});
+
+	onDestroy(() => {
+		socket?.close();
+	});
 
 	function updateButtons() {
 		buttonIds.forEach((value: boolean, key: string) => {
@@ -95,9 +155,9 @@
 		}
 		let states: string[] = new Array<string>(selectedIds.length);
 		for (let i = 0; i < selectedIds.length; i++) {
-			for (let j = 0; j < conList.length; j++) {
-				if (selectedIds[i] == conList[j].id) {
-					states[i] = conList[j].state;
+			for (let j = 0; j < conList.items.length; j++) {
+				if (selectedIds[i] == conList.items[j].id) {
+					states[i] = conList.items[j].state;
 				}
 			}
 		}
@@ -165,10 +225,10 @@
 		const elements = document.querySelectorAll('input[name=checkbox-item]');
 		if (elements !== null) {
 			Array.prototype.forEach.call(elements, function (item) {
-				if (!CheckIsMedovukha(item.id) && item.checked != checked) {
-					updateSelected(item.id, checked);
-					item.checked = checked;
-				}
+				// if (!CheckIsMedovukha(item.id) && item.checked != checked) {
+				updateSelected(item.id, checked);
+				item.checked = checked;
+				// }
 			});
 		}
 	}
@@ -232,7 +292,9 @@
 					event;
 				}}>Refresh</button
 			>
-			<a href="/create-container-git" id="create-container-git-button" class="btn">Create from git</a>
+			<a href="/create-container-git" id="create-container-git-button" class="btn"
+				>Create from git</a
+			>
 		</div>
 		<div class="button-block-right">
 			<button
@@ -241,9 +303,9 @@
 				onclick={() => {
 					StartContainer(selectedIds);
 					selectAll(false);
-					setTimeout(() => {
-						updateContainerList();
-					}, 1000);
+					// setTimeout(() => {
+					// 	updateContainerList();
+					// }, 1000);
 				}}
 				disabled>Start</button
 			>
@@ -253,9 +315,9 @@
 				onclick={() => {
 					StopContainer(selectedIds);
 					selectAll(false);
-					setTimeout(() => {
-						updateContainerList();
-					}, 1000);
+					// setTimeout(() => {
+					// 	updateContainerList();
+					// }, 1000);
 				}}
 				disabled>Stop</button
 			>
@@ -265,9 +327,9 @@
 				onclick={() => {
 					KillContainer(selectedIds);
 					selectAll(false);
-					setTimeout(() => {
-						updateContainerList();
-					}, 1000);
+					// setTimeout(() => {
+					// 	updateContainerList();
+					// }, 1000);
 				}}
 				disabled>Kill</button
 			>
@@ -277,9 +339,9 @@
 				onclick={() => {
 					RestartContainer(selectedIds);
 					selectAll(false);
-					setTimeout(() => {
-						updateContainerList();
-					}, 1000);
+					// setTimeout(() => {
+					// 	updateContainerList();
+					// }, 1000);
 				}}
 				disabled>Restart</button
 			>
@@ -289,9 +351,9 @@
 				onclick={() => {
 					PauseContainer(selectedIds);
 					selectAll(false);
-					setTimeout(() => {
-						updateContainerList();
-					}, 1000);
+					// setTimeout(() => {
+					// 	updateContainerList();
+					// }, 1000);
 				}}
 				disabled>Pause</button
 			>
@@ -301,9 +363,9 @@
 				onclick={() => {
 					UnpauseContainer(selectedIds);
 					selectAll(false);
-					setTimeout(() => {
-						updateContainerList();
-					}, 1000);
+					// setTimeout(() => {
+					// 	updateContainerList();
+					// }, 1000);
 				}}
 				disabled>Resume</button
 			>
@@ -313,9 +375,9 @@
 				onclick={() => {
 					RemoveContainer(selectedIds);
 					selectAll(false);
-					setTimeout(() => {
-						updateContainerList();
-					}, 1000);
+					// setTimeout(() => {
+					// 	updateContainerList();
+					// }, 1000);
 				}}
 				disabled>Remove</button
 			>
@@ -342,26 +404,22 @@
 			</tr>
 		</thead>
 		<tbody>
-			{#each conList as container}
+			{#each conList.items as container}
 				<tr>
 					<td>
-						{#if container.isMedovukha}
-							<input type="checkbox" name="checkbox-item" id={container.id} disabled />
-						{:else}
-							<input
-								type="checkbox"
-								name="checkbox-item"
-								id={container.id}
-								onchange={(event) => {
-									const target = event.target as HTMLInputElement;
-									updateSelected(container.id, target.checked);
-								}}
-							/>
-						{/if}
+						<input
+							type="checkbox"
+							name="checkbox-item"
+							id={container.id}
+							onchange={(event) => {
+								const target = event.target as HTMLInputElement;
+								updateSelected(container.id, target.checked);
+							}}
+						/>
 					</td>
 					<td>{container.names[0]}</td>
 					<td class="state-{container.state}">{container.state}</td>
-					<td>{container.image}</td>
+					<td>{container.imageName}</td>
 					<td>
 						{#if container.ports == null || container.ports.length == 0}
 							-

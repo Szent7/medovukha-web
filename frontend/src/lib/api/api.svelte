@@ -1,15 +1,19 @@
 <script lang="ts" context="module">
 	import axios from 'axios';
 	import {
-		ContainerBaseInfoScheme,
-		ImageBaseInfoScheme,
-		NetworkBaseInfoScheme,
-		VolumeBaseInfoScheme,
-		type ContainerBaseInfo,
+		ListContainerBaseInfoScheme,
+		ListImageBaseInfoScheme,
+		ListNetworkBaseInfoScheme,
+		ListVolumeBaseInfoScheme,
+		DeployFromGitScheme,
+		type ListContainerBaseInfo,
 		type ContainerIdMessage,
-		type ImageBaseInfo,
-		type NetworkBaseInfo,
-		type VolumeBaseInfo
+		type ListImageBaseInfo,
+		type ListNetworkBaseInfo,
+		type ListVolumeBaseInfo,
+		type DeployFromGitInfo,
+		BuildIDScheme,
+		type BuildIDMessage
 	} from './types.svelte';
 
 	export async function PingBack() {
@@ -21,7 +25,7 @@
 	export async function GetContainerList() {
 		try {
 			const response = await axios.get('http://localhost:10015/rest/v1/getContainerList');
-			const containers: ContainerBaseInfo = ContainerBaseInfoScheme.parse(response.data);
+			const containers: ListContainerBaseInfo = ListContainerBaseInfoScheme.parse(response.data);
 			//console.log("responseData:" + containers);
 			return containers;
 		} catch (error) {
@@ -31,7 +35,7 @@
 
 	export async function PauseContainerById(id: string) {
 		const container: ContainerIdMessage = {
-			Id: id
+			id: id
 		};
 		try {
 			const response = await axios.post(
@@ -50,7 +54,7 @@
 
 	export async function UnpauseContainerById(id: string) {
 		const container: ContainerIdMessage = {
-			Id: id
+			id: id
 		};
 		try {
 			const response = await axios.post(
@@ -69,7 +73,7 @@
 
 	export async function KillContainerById(id: string) {
 		const container: ContainerIdMessage = {
-			Id: id
+			id: id
 		};
 		try {
 			const response = await axios.post(
@@ -88,7 +92,7 @@
 
 	export async function StartContainerById(id: string) {
 		const container: ContainerIdMessage = {
-			Id: id
+			id: id
 		};
 		try {
 			const response = await axios.post(
@@ -107,7 +111,7 @@
 
 	export async function StopContainerById(id: string) {
 		const container: ContainerIdMessage = {
-			Id: id
+			id: id
 		};
 		try {
 			const response = await axios.post(
@@ -126,7 +130,7 @@
 
 	export async function RestartContainerById(id: string) {
 		const container: ContainerIdMessage = {
-			Id: id
+			id: id
 		};
 		try {
 			const response = await axios.post(
@@ -145,7 +149,7 @@
 
 	export async function RemoveContainerById(id: string) {
 		const container: ContainerIdMessage = {
-			Id: id
+			id: id
 		};
 		try {
 			const response = await axios.post(
@@ -166,7 +170,7 @@
 	export async function GetImageList() {
 		try {
 			const response = await axios.get('http://localhost:10015/rest/v1/getImageList');
-			const images: ImageBaseInfo = ImageBaseInfoScheme.parse(response.data);
+			const images: ListImageBaseInfo = ListImageBaseInfoScheme.parse(response.data);
 			//console.log("responseData:" + containers);
 			return images;
 		} catch (error) {
@@ -178,7 +182,7 @@
 	export async function GetNetworkList() {
 		try {
 			const response = await axios.get('http://localhost:10015/rest/v1/getNetworkList');
-			const networks: NetworkBaseInfo = NetworkBaseInfoScheme.parse(response.data);
+			const networks: ListNetworkBaseInfo = ListNetworkBaseInfoScheme.parse(response.data);
 			//console.log("responseData:" + containers);
 			return networks;
 		} catch (error) {
@@ -190,11 +194,26 @@
 	export async function GetVolumeList() {
 		try {
 			const response = await axios.get('http://localhost:10015/rest/v1/getVolumeList');
-			const volumes: VolumeBaseInfo = VolumeBaseInfoScheme.parse(response.data);
+			const volumes: ListVolumeBaseInfo = ListVolumeBaseInfoScheme.parse(response.data);
 			//console.log("responseData:" + containers);
 			return volumes;
 		} catch (error) {
 			console.error('Error GET VolumeList:', error);
+		}
+	}
+
+	//Deploy
+	export async function CreateFromGit(deployGitInfo: DeployFromGitInfo) {
+		try {
+			const response = await axios.post(
+				'http://localhost:10015/rest/v1/createFromGit',
+				deployGitInfo
+			);
+
+			const buildID: BuildIDMessage = BuildIDScheme.parse(response.data);
+			return buildID;
+		} catch (error) {
+			console.error('Error POST createFromGit:', error);
 		}
 	}
 </script>

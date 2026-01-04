@@ -16,10 +16,11 @@ const config = {
 		}),
 
 		alias: {
-		'@/*': './src/*',
-		'@assets/*': './src/assets/*',
-		'@lib/*': './src/lib/*',
-		'@templates/*': './src/templates/*'
+			'@/*': './src/*',
+			'@assets/*': './src/assets/*',
+			'@lib/*': './src/lib/*',
+			'@templates/*': './src/templates/*',
+			'@stores/*': './src/stores/*'
 		}
 	}
 };
