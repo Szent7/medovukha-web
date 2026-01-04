@@ -1,0 +1,5 @@
+version: "v2"
+root: api
+lint:
+  use:
+    - DEFAULT

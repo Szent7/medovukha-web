@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store';
-import { string, z } from 'zod';
+import { z } from 'zod';
 
 export const ActorSchema = z.object({
 	id: z.string()

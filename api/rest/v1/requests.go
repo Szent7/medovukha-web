@@ -27,7 +27,7 @@ func NewAPI(rpcClient dockerpb.DockerServiceClient) *API {
 
 // Containers
 func (a *API) GetContainerList(c *gin.Context) {
-	resp, err := a.rpcClient.GetContainerList(c.Request.Context(), &dockerpb.Empty{})
+	resp, err := a.rpcClient.GetContainerList(c.Request.Context(), &dockerpb.GetContainerListRequest{})
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "GetContainerList error" + err.Error()})
 		fmt.Printf("gRPC error: %s\n", err.Error())
@@ -50,7 +50,7 @@ func (a *API) PauseContainerByID(c *gin.Context) {
 		return
 	}
 
-	resp, err := a.rpcClient.PauseContainerByID(c.Request.Context(), &dockerpb.BaseID{Id: req.ID})
+	resp, err := a.rpcClient.PauseContainerByID(c.Request.Context(), &dockerpb.PauseContainerByIDRequest{Id: req.ID})
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "PauseContainerByID error" + err.Error()})
 		fmt.Printf("gRPC error: %s\n", err.Error())
@@ -73,7 +73,7 @@ func (a *API) UnpauseContainerByID(c *gin.Context) {
 		return
 	}
 
-	resp, err := a.rpcClient.UnpauseContainerByID(c.Request.Context(), &dockerpb.BaseID{Id: req.ID})
+	resp, err := a.rpcClient.UnpauseContainerByID(c.Request.Context(), &dockerpb.UnpauseContainerByIDRequest{Id: req.ID})
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "UnpauseContainerByID error" + err.Error()})
 		fmt.Printf("gRPC error: %s\n", err.Error())
@@ -96,7 +96,7 @@ func (a *API) KillContainerByID(c *gin.Context) {
 		return
 	}
 
-	resp, err := a.rpcClient.KillContainerByID(c.Request.Context(), &dockerpb.BaseID{Id: req.ID})
+	resp, err := a.rpcClient.KillContainerByID(c.Request.Context(), &dockerpb.KillContainerByIDRequest{Id: req.ID})
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "KillContainerByID error" + err.Error()})
 		fmt.Printf("gRPC error: %s\n", err.Error())
@@ -119,7 +119,7 @@ func (a *API) StartContainerByID(c *gin.Context) {
 		return
 	}
 
-	resp, err := a.rpcClient.StartContainerByID(c.Request.Context(), &dockerpb.BaseID{Id: req.ID})
+	resp, err := a.rpcClient.StartContainerByID(c.Request.Context(), &dockerpb.StartContainerByIDRequest{Id: req.ID})
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "StartContainerByID error" + err.Error()})
 		fmt.Printf("gRPC error: %s\n", err.Error())
@@ -142,7 +142,7 @@ func (a *API) StopContainerByID(c *gin.Context) {
 		return
 	}
 
-	resp, err := a.rpcClient.StopContainerByID(c.Request.Context(), &dockerpb.BaseID{Id: req.ID})
+	resp, err := a.rpcClient.StopContainerByID(c.Request.Context(), &dockerpb.StopContainerByIDRequest{Id: req.ID})
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "StopContainerByID error" + err.Error()})
 		fmt.Printf("gRPC error: %s\n", err.Error())
@@ -165,7 +165,7 @@ func (a *API) RestartContainerByID(c *gin.Context) {
 		return
 	}
 
-	resp, err := a.rpcClient.RestartContainerByID(c.Request.Context(), &dockerpb.BaseID{Id: req.ID})
+	resp, err := a.rpcClient.RestartContainerByID(c.Request.Context(), &dockerpb.RestartContainerByIDRequest{Id: req.ID})
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "RestartContainerByID error" + err.Error()})
 		fmt.Printf("gRPC error: %s\n", err.Error())
@@ -188,7 +188,7 @@ func (a *API) RemoveContainerByID(c *gin.Context) {
 		return
 	}
 
-	resp, err := a.rpcClient.RemoveContainerByID(c.Request.Context(), &dockerpb.BaseID{Id: req.ID})
+	resp, err := a.rpcClient.RemoveContainerByID(c.Request.Context(), &dockerpb.RemoveContainerByIDRequest{Id: req.ID})
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "RemoveContainerByID error" + err.Error()})
 		fmt.Printf("gRPC error: %s\n", err.Error())
@@ -207,7 +207,7 @@ func (a *API) RemoveContainerByID(c *gin.Context) {
 
 // Images
 func (a *API) GetImageList(c *gin.Context) {
-	resp, err := a.rpcClient.GetImageList(c.Request.Context(), &dockerpb.Empty{})
+	resp, err := a.rpcClient.GetImageList(c.Request.Context(), &dockerpb.GetImageListRequest{})
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "GetImageList error" + err.Error()})
 		fmt.Printf("gRPC error: %s\n", err.Error())
@@ -226,7 +226,7 @@ func (a *API) GetImageList(c *gin.Context) {
 
 // Networks
 func (a *API) GetNetworkList(c *gin.Context) {
-	resp, err := a.rpcClient.GetNetworkList(c.Request.Context(), &dockerpb.Empty{})
+	resp, err := a.rpcClient.GetNetworkList(c.Request.Context(), &dockerpb.GetNetworkListRequest{})
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "GetNetworkList error" + err.Error()})
 		fmt.Printf("gRPC error: %s\n", err.Error())
@@ -245,7 +245,7 @@ func (a *API) GetNetworkList(c *gin.Context) {
 
 // Volumes
 func (a *API) GetVolumeList(c *gin.Context) {
-	resp, err := a.rpcClient.GetVolumeList(c.Request.Context(), &dockerpb.Empty{})
+	resp, err := a.rpcClient.GetVolumeList(c.Request.Context(), &dockerpb.GetVolumeListRequest{})
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "GetVolumeList error" + err.Error()})
 		fmt.Printf("gRPC error: %s\n", err.Error())
@@ -264,7 +264,7 @@ func (a *API) GetVolumeList(c *gin.Context) {
 
 // Deploy
 func (a *API) CreateFromGit(c *gin.Context) {
-	var req dockerpb.DeployFromGit
+	var req dockerpb.CreateFromGitRequest
 	if err := c.BindJSON(&req); err != nil {
 		return
 	}
@@ -286,9 +286,26 @@ func (a *API) CreateFromGit(c *gin.Context) {
 	c.Data(http.StatusOK, mimeTypeJson, jsonBytes)
 }
 
+func (a *API) StreamBuildLogs(ctx context.Context, buildID string, logCh chan<- *dockerpb.StreamBuildLogsResponse, errCh chan<- error) {
+	stream, err := a.rpcClient.StreamBuildLogs(ctx, &dockerpb.StreamBuildLogsRequest{BuildId: buildID})
+	if err != nil {
+		errCh <- err
+		return
+	}
+
+	for {
+		log, err := stream.Recv()
+		if err != nil {
+			errCh <- err
+			return
+		}
+		logCh <- log
+	}
+}
+
 // Events
-func (a *API) GetContainerState(ctx context.Context, eventCh chan<- *dockerpb.ContainerState, errCh chan<- error) {
-	stream, err := a.rpcClient.GetContainerState(ctx, &dockerpb.Empty{})
+func (a *API) GetContainerState(ctx context.Context, eventCh chan<- *dockerpb.GetContainerStateResponse, errCh chan<- error) {
+	stream, err := a.rpcClient.GetContainerState(ctx, &dockerpb.GetContainerStateRequest{})
 	if err != nil {
 		errCh <- err
 		return

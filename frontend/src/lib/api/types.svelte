@@ -9,6 +9,11 @@
 		id: z.string()
 	});
 	export type ContainerIdMessage = z.infer<typeof ContainerIdMessageScheme>;
+
+	export const BuildIDScheme = z.object({
+		build_id: z.string()
+	});
+	export type BuildIDMessage = z.infer<typeof BuildIDScheme>;
 	//
 	//
 	// ContainerBaseInfo
@@ -95,4 +100,16 @@
 		items: z.array(VolumeBaseInfoScheme)
 	});
 	export type ListVolumeBaseInfo = z.infer<typeof ListVolumeBaseInfoScheme>;
+	//
+	//
+	// DeployFromGitInfo
+	//
+	//
+	export const DeployFromGitScheme = z.object({
+		url: z.string(),
+		dockerfile: z.string(),
+		docker_compose: z.string(),
+		docker_run: z.string()
+	});
+	export type DeployFromGitInfo = z.infer<typeof DeployFromGitScheme>;
 </script>

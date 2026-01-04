@@ -43,7 +43,6 @@ func main() {
 	router := gin.Default()
 
 	wsHub := websockets.NewHub(api)
-	go wsHub.Run()
 
 	router.Static("/_app/immutable/", "./build/_app/immutable/")
 	router.NoRoute(func(c *gin.Context) {
@@ -61,7 +60,8 @@ func main() {
 
 	ws := router.Group("/ws")
 	{
-		ws.GET("/containerEvents", websockets.WsHandler(wsHub))
+		ws.GET("/containerEvents", websockets.WsContainerEventsHandler(wsHub))
+		ws.GET("/buildLogs", websockets.WsBuildLogsHandler(wsHub))
 	}
 
 	rest := router.Group("/rest")

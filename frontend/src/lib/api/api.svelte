@@ -5,11 +5,15 @@
 		ListImageBaseInfoScheme,
 		ListNetworkBaseInfoScheme,
 		ListVolumeBaseInfoScheme,
+		DeployFromGitScheme,
 		type ListContainerBaseInfo,
 		type ContainerIdMessage,
 		type ListImageBaseInfo,
 		type ListNetworkBaseInfo,
-		type ListVolumeBaseInfo
+		type ListVolumeBaseInfo,
+		type DeployFromGitInfo,
+		BuildIDScheme,
+		type BuildIDMessage
 	} from './types.svelte';
 
 	export async function PingBack() {
@@ -31,7 +35,7 @@
 
 	export async function PauseContainerById(id: string) {
 		const container: ContainerIdMessage = {
-			Id: id
+			id: id
 		};
 		try {
 			const response = await axios.post(
@@ -50,7 +54,7 @@
 
 	export async function UnpauseContainerById(id: string) {
 		const container: ContainerIdMessage = {
-			Id: id
+			id: id
 		};
 		try {
 			const response = await axios.post(
@@ -69,7 +73,7 @@
 
 	export async function KillContainerById(id: string) {
 		const container: ContainerIdMessage = {
-			Id: id
+			id: id
 		};
 		try {
 			const response = await axios.post(
@@ -88,7 +92,7 @@
 
 	export async function StartContainerById(id: string) {
 		const container: ContainerIdMessage = {
-			Id: id
+			id: id
 		};
 		try {
 			const response = await axios.post(
@@ -107,7 +111,7 @@
 
 	export async function StopContainerById(id: string) {
 		const container: ContainerIdMessage = {
-			Id: id
+			id: id
 		};
 		try {
 			const response = await axios.post(
@@ -126,7 +130,7 @@
 
 	export async function RestartContainerById(id: string) {
 		const container: ContainerIdMessage = {
-			Id: id
+			id: id
 		};
 		try {
 			const response = await axios.post(
@@ -145,7 +149,7 @@
 
 	export async function RemoveContainerById(id: string) {
 		const container: ContainerIdMessage = {
-			Id: id
+			id: id
 		};
 		try {
 			const response = await axios.post(
@@ -195,6 +199,21 @@
 			return volumes;
 		} catch (error) {
 			console.error('Error GET VolumeList:', error);
+		}
+	}
+
+	//Deploy
+	export async function CreateFromGit(deployGitInfo: DeployFromGitInfo) {
+		try {
+			const response = await axios.post(
+				'http://localhost:10015/rest/v1/createFromGit',
+				deployGitInfo
+			);
+
+			const buildID: BuildIDMessage = BuildIDScheme.parse(response.data);
+			return buildID;
+		} catch (error) {
+			console.error('Error POST createFromGit:', error);
 		}
 	}
 </script>
