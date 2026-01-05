@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/Szent7/medovukha-web/api/rest/v1/types"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 )
@@ -18,6 +19,8 @@ func WsContainerEventsHandler(hub *Hub) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 		if err != nil {
+			c.IndentedJSON(http.StatusInternalServerError,
+				types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrWeb, Message: err.Error()}))
 			log.Printf("WsHandler error: %s\n", err.Error())
 			return
 		}
@@ -39,6 +42,8 @@ func WsBuildLogsHandler(hub *Hub) gin.HandlerFunc {
 
 		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 		if err != nil {
+			c.IndentedJSON(http.StatusInternalServerError,
+				types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrWeb, Message: err.Error()}))
 			log.Printf("WsHandler error: %s\n", err.Error())
 			return
 		}

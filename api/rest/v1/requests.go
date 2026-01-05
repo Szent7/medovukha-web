@@ -2,11 +2,10 @@ package rest
 
 import (
 	"context"
-	"fmt"
+	"log"
 
 	dockerpb "github.com/Szent7/medovukha-web/api/docker/v1"
 	"github.com/Szent7/medovukha-web/api/rest/v1/types"
-	"google.golang.org/protobuf/encoding/protojson"
 
 	"net/http"
 
@@ -29,261 +28,213 @@ func NewAPI(rpcClient dockerpb.DockerServiceClient) *API {
 func (a *API) GetContainerList(c *gin.Context) {
 	resp, err := a.rpcClient.GetContainerList(c.Request.Context(), &dockerpb.GetContainerListRequest{})
 	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "GetContainerList error" + err.Error()})
-		fmt.Printf("gRPC error: %s\n", err.Error())
+		c.IndentedJSON(http.StatusInternalServerError,
+			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrCore, Message: err.Error()}))
+		log.Printf("gRPC error: %s\n", err.Error())
 		return
 	}
 
-	jsonBytes, err := protojson.Marshal(resp)
-	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "GetContainerList error" + err.Error()})
-		fmt.Printf("protobuf marshall error: %s\n", err.Error())
-		return
-	}
-
-	c.Data(http.StatusOK, mimeTypeJson, jsonBytes)
+	c.IndentedJSON(http.StatusOK, types.NewSuccess(resp))
 }
 
 func (a *API) PauseContainerByID(c *gin.Context) {
 	var req types.BaseID
 	if err := c.BindJSON(&req); err != nil {
+		c.IndentedJSON(http.StatusInternalServerError,
+			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrWeb, Message: err.Error()}))
+		log.Printf("parse error: %s\n", err.Error())
 		return
 	}
 
 	resp, err := a.rpcClient.PauseContainerByID(c.Request.Context(), &dockerpb.PauseContainerByIDRequest{Id: req.ID})
 	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "PauseContainerByID error" + err.Error()})
-		fmt.Printf("gRPC error: %s\n", err.Error())
+		c.IndentedJSON(http.StatusInternalServerError,
+			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrCore, Message: err.Error()}))
+		log.Printf("gRPC error: %s\n", err.Error())
 		return
 	}
 
-	jsonBytes, err := protojson.Marshal(resp)
-	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "PauseContainerByID error" + err.Error()})
-		fmt.Printf("protobuf marshall error: %s\n", err.Error())
-		return
-	}
-
-	c.Data(http.StatusOK, mimeTypeJson, jsonBytes)
+	c.IndentedJSON(http.StatusOK, types.NewSuccess(resp))
 }
 
 func (a *API) UnpauseContainerByID(c *gin.Context) {
 	var req types.BaseID
 	if err := c.BindJSON(&req); err != nil {
+		c.IndentedJSON(http.StatusInternalServerError,
+			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrWeb, Message: err.Error()}))
+		log.Printf("parse error: %s\n", err.Error())
 		return
 	}
 
 	resp, err := a.rpcClient.UnpauseContainerByID(c.Request.Context(), &dockerpb.UnpauseContainerByIDRequest{Id: req.ID})
 	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "UnpauseContainerByID error" + err.Error()})
-		fmt.Printf("gRPC error: %s\n", err.Error())
+		c.IndentedJSON(http.StatusInternalServerError,
+			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrCore, Message: err.Error()}))
+		log.Printf("gRPC error: %s\n", err.Error())
 		return
 	}
 
-	jsonBytes, err := protojson.Marshal(resp)
-	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "UnpauseContainerByID error" + err.Error()})
-		fmt.Printf("protobuf marshall error: %s\n", err.Error())
-		return
-	}
-
-	c.Data(http.StatusOK, mimeTypeJson, jsonBytes)
+	c.IndentedJSON(http.StatusOK, types.NewSuccess(resp))
 }
 
 func (a *API) KillContainerByID(c *gin.Context) {
 	var req types.BaseID
 	if err := c.BindJSON(&req); err != nil {
+		c.IndentedJSON(http.StatusInternalServerError,
+			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrWeb, Message: err.Error()}))
+		log.Printf("parse error: %s\n", err.Error())
 		return
 	}
 
 	resp, err := a.rpcClient.KillContainerByID(c.Request.Context(), &dockerpb.KillContainerByIDRequest{Id: req.ID})
 	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "KillContainerByID error" + err.Error()})
-		fmt.Printf("gRPC error: %s\n", err.Error())
+		c.IndentedJSON(http.StatusInternalServerError,
+			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrCore, Message: err.Error()}))
+		log.Printf("gRPC error: %s\n", err.Error())
 		return
 	}
 
-	jsonBytes, err := protojson.Marshal(resp)
-	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "KillContainerByID error" + err.Error()})
-		fmt.Printf("protobuf marshall error: %s\n", err.Error())
-		return
-	}
-
-	c.Data(http.StatusOK, mimeTypeJson, jsonBytes)
+	c.IndentedJSON(http.StatusOK, types.NewSuccess(resp))
 }
 
 func (a *API) StartContainerByID(c *gin.Context) {
 	var req types.BaseID
 	if err := c.BindJSON(&req); err != nil {
+		c.IndentedJSON(http.StatusInternalServerError,
+			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrWeb, Message: err.Error()}))
+		log.Printf("parse error: %s\n", err.Error())
 		return
 	}
 
 	resp, err := a.rpcClient.StartContainerByID(c.Request.Context(), &dockerpb.StartContainerByIDRequest{Id: req.ID})
 	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "StartContainerByID error" + err.Error()})
-		fmt.Printf("gRPC error: %s\n", err.Error())
+		c.IndentedJSON(http.StatusInternalServerError,
+			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrCore, Message: err.Error()}))
+		log.Printf("gRPC error: %s\n", err.Error())
 		return
 	}
 
-	jsonBytes, err := protojson.Marshal(resp)
-	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "StartContainerByID error" + err.Error()})
-		fmt.Printf("protobuf marshall error: %s\n", err.Error())
-		return
-	}
-
-	c.Data(http.StatusOK, mimeTypeJson, jsonBytes)
+	c.IndentedJSON(http.StatusOK, types.NewSuccess(resp))
 }
 
 func (a *API) StopContainerByID(c *gin.Context) {
 	var req types.BaseID
 	if err := c.BindJSON(&req); err != nil {
+		c.IndentedJSON(http.StatusInternalServerError,
+			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrWeb, Message: err.Error()}))
+		log.Printf("parse error: %s\n", err.Error())
 		return
 	}
 
 	resp, err := a.rpcClient.StopContainerByID(c.Request.Context(), &dockerpb.StopContainerByIDRequest{Id: req.ID})
 	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "StopContainerByID error" + err.Error()})
-		fmt.Printf("gRPC error: %s\n", err.Error())
+		c.IndentedJSON(http.StatusInternalServerError,
+			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrCore, Message: err.Error()}))
+		log.Printf("gRPC error: %s\n", err.Error())
 		return
 	}
 
-	jsonBytes, err := protojson.Marshal(resp)
-	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "StopContainerByID error" + err.Error()})
-		fmt.Printf("protobuf marshall error: %s\n", err.Error())
-		return
-	}
-
-	c.Data(http.StatusOK, mimeTypeJson, jsonBytes)
+	c.IndentedJSON(http.StatusOK, types.NewSuccess(resp))
 }
 
 func (a *API) RestartContainerByID(c *gin.Context) {
 	var req types.BaseID
 	if err := c.BindJSON(&req); err != nil {
+		c.IndentedJSON(http.StatusInternalServerError,
+			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrWeb, Message: err.Error()}))
+		log.Printf("parse error: %s\n", err.Error())
 		return
 	}
 
 	resp, err := a.rpcClient.RestartContainerByID(c.Request.Context(), &dockerpb.RestartContainerByIDRequest{Id: req.ID})
 	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "RestartContainerByID error" + err.Error()})
-		fmt.Printf("gRPC error: %s\n", err.Error())
+		c.IndentedJSON(http.StatusInternalServerError,
+			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrCore, Message: err.Error()}))
+		log.Printf("gRPC error: %s\n", err.Error())
 		return
 	}
 
-	jsonBytes, err := protojson.Marshal(resp)
-	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "RestartContainerByID error" + err.Error()})
-		fmt.Printf("protobuf marshall error: %s\n", err.Error())
-		return
-	}
-
-	c.Data(http.StatusOK, mimeTypeJson, jsonBytes)
+	c.IndentedJSON(http.StatusOK, types.NewSuccess(resp))
 }
 
 func (a *API) RemoveContainerByID(c *gin.Context) {
 	var req types.BaseID
 	if err := c.BindJSON(&req); err != nil {
+		c.IndentedJSON(http.StatusInternalServerError,
+			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrWeb, Message: err.Error()}))
+		log.Printf("parse error: %s\n", err.Error())
 		return
 	}
 
 	resp, err := a.rpcClient.RemoveContainerByID(c.Request.Context(), &dockerpb.RemoveContainerByIDRequest{Id: req.ID})
 	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "RemoveContainerByID error" + err.Error()})
-		fmt.Printf("gRPC error: %s\n", err.Error())
+		c.IndentedJSON(http.StatusInternalServerError,
+			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrCore, Message: err.Error()}))
+		log.Printf("gRPC error: %s\n", err.Error())
 		return
 	}
 
-	jsonBytes, err := protojson.Marshal(resp)
-	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "RemoveContainerByID error" + err.Error()})
-		fmt.Printf("protobuf marshall error: %s\n", err.Error())
-		return
-	}
-
-	c.Data(http.StatusOK, mimeTypeJson, jsonBytes)
+	c.IndentedJSON(http.StatusOK, types.NewSuccess(resp))
 }
 
 // Images
 func (a *API) GetImageList(c *gin.Context) {
 	resp, err := a.rpcClient.GetImageList(c.Request.Context(), &dockerpb.GetImageListRequest{})
 	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "GetImageList error" + err.Error()})
-		fmt.Printf("gRPC error: %s\n", err.Error())
+		c.IndentedJSON(http.StatusInternalServerError,
+			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrCore, Message: err.Error()}))
+		log.Printf("gRPC error: %s\n", err.Error())
 		return
 	}
 
-	jsonBytes, err := protojson.Marshal(resp)
-	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "GetImageList error" + err.Error()})
-		fmt.Printf("protobuf marshall error: %s\n", err.Error())
-		return
-	}
-
-	c.Data(http.StatusOK, mimeTypeJson, jsonBytes)
+	c.IndentedJSON(http.StatusOK, types.NewSuccess(resp))
 }
 
 // Networks
 func (a *API) GetNetworkList(c *gin.Context) {
 	resp, err := a.rpcClient.GetNetworkList(c.Request.Context(), &dockerpb.GetNetworkListRequest{})
 	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "GetNetworkList error" + err.Error()})
-		fmt.Printf("gRPC error: %s\n", err.Error())
+		c.IndentedJSON(http.StatusInternalServerError,
+			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrCore, Message: err.Error()}))
+		log.Printf("gRPC error: %s\n", err.Error())
 		return
 	}
 
-	jsonBytes, err := protojson.Marshal(resp)
-	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "GetNetworkList error" + err.Error()})
-		fmt.Printf("protobuf marshall error: %s\n", err.Error())
-		return
-	}
-
-	c.Data(http.StatusOK, mimeTypeJson, jsonBytes)
+	c.IndentedJSON(http.StatusOK, types.NewSuccess(resp))
 }
 
 // Volumes
 func (a *API) GetVolumeList(c *gin.Context) {
 	resp, err := a.rpcClient.GetVolumeList(c.Request.Context(), &dockerpb.GetVolumeListRequest{})
 	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "GetVolumeList error" + err.Error()})
-		fmt.Printf("gRPC error: %s\n", err.Error())
+		c.IndentedJSON(http.StatusInternalServerError,
+			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrCore, Message: err.Error()}))
+		log.Printf("gRPC error: %s\n", err.Error())
 		return
 	}
 
-	jsonBytes, err := protojson.Marshal(resp)
-	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "GetVolumeList error" + err.Error()})
-		fmt.Printf("protobuf marshall error: %s\n", err.Error())
-		return
-	}
-
-	c.Data(http.StatusOK, mimeTypeJson, jsonBytes)
+	c.IndentedJSON(http.StatusOK, types.NewSuccess(resp))
 }
 
 // Deploy
 func (a *API) CreateFromGit(c *gin.Context) {
 	var req dockerpb.CreateFromGitRequest
 	if err := c.BindJSON(&req); err != nil {
+		c.IndentedJSON(http.StatusInternalServerError,
+			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrWeb, Message: err.Error()}))
+		log.Printf("parse error: %s\n", err.Error())
 		return
 	}
 
 	resp, err := a.rpcClient.CreateFromGit(c.Request.Context(), &req)
 	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "CreateFromGit error" + err.Error()})
-		fmt.Printf("gRPC error: %s\n", err.Error())
+		c.IndentedJSON(http.StatusInternalServerError,
+			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrCore, Message: err.Error()}))
+		log.Printf("gRPC error: %s\n", err.Error())
 		return
 	}
 
-	jsonBytes, err := protojson.Marshal(resp)
-	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, types.BaseMessage{Message: "CreateFromGit error" + err.Error()})
-		fmt.Printf("protobuf marshall error: %s\n", err.Error())
-		return
-	}
-
-	c.Data(http.StatusOK, mimeTypeJson, jsonBytes)
+	c.IndentedJSON(http.StatusOK, types.NewSuccess(resp))
 }
 
 func (a *API) StreamBuildLogs(ctx context.Context, buildID string, logCh chan<- *dockerpb.StreamBuildLogsResponse, errCh chan<- error) {

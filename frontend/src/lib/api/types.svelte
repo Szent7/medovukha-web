@@ -2,6 +2,22 @@
 	import { z } from 'zod';
 	//
 	//
+	// Response
+	//
+	//
+	export const createResponseScheme = <T extends z.ZodTypeAny>(dataScheme: T) =>
+		z.object({
+			success: z.boolean(),
+			error: APIErrorSchema.optional(),
+			data: dataScheme.optional()
+		});
+
+	export const APIErrorSchema = z.object({
+		code: z.string(),
+		message: z.string()
+	});
+	//
+	//
 	// ContainerIdMessage
 	//
 	//
@@ -22,20 +38,20 @@
 	export const ContainerBaseInfoScheme = z.object({
 		id: z.string(),
 		names: z.array(z.string()),
-		imageName: z.string(),
+		image_name: z.string(),
 		ports: z
 			.array(
 				z
 					.object({
 						ip: z.string(),
-						privatePort: z.number(),
-						publicPort: z.number(),
+						private_port: z.number(),
+						public_port: z.number(),
 						type: z.string()
 					})
 					.optional()
 			)
 			.optional(),
-		created: z.string(),
+		created: z.number(),
 		state: z.string()
 	});
 	export type ContainerBaseInfo = z.infer<typeof ContainerBaseInfoScheme>;
@@ -52,8 +68,8 @@
 	export const ImageBaseInfoScheme = z.object({
 		id: z.string(),
 		tags: z.array(z.string()),
-		size: z.string(),
-		created: z.string()
+		size: z.number(),
+		created: z.number()
 	});
 	export type ImageBaseInfo = z.infer<typeof ImageBaseInfoScheme>;
 
@@ -70,12 +86,12 @@
 		name: z.string(),
 		id: z.string(),
 		driver: z.string(),
-		enableIPv6: z.boolean().optional(),
-		ipamDriver: z.string(),
+		enable_ipv6: z.boolean().optional(),
+		ipam_driver: z.string(),
 		subnet: z.array(z.string()).optional(),
 		gateway: z.array(z.string()).optional(),
 		attachable: z.boolean().optional(),
-		dockerNetwork: z.boolean().optional()
+		docker_network: z.boolean().optional()
 	});
 	export type NetworkBaseInfo = z.infer<typeof NetworkBaseInfoScheme>;
 
