@@ -7,8 +7,9 @@ type Response[T any] struct {
 }
 
 type APIError struct {
-	Code    ErrorCode `json:"code"`
-	Message string    `json:"message"`
+	Code    ErrorCode         `json:"code"`
+	Message string            `json:"message"`
+	Fields  map[string]string `json:"fields,omitempty"`
 }
 
 type BaseMessage struct {
@@ -16,7 +17,7 @@ type BaseMessage struct {
 }
 
 type BaseID struct {
-	ID string `json:"id"`
+	ID string `json:"id" binding:"required"`
 }
 
 type ContainerBaseInfo struct {
@@ -62,8 +63,8 @@ type VolumeBaseInfo struct {
 	Created    string `json:"created"`
 }
 
-type DeployFromGit struct {
-	URL           string `json:"url"`
+type CreateFromGit struct {
+	URL           string `json:"url" binding:"required,url"`
 	Dockerfile    string `json:"dockerfile"`
 	DockerCompose string `json:"docker_compose"`
 	DockerRun     string `json:"docker_run"`

@@ -13,6 +13,7 @@ type ErrorCode string
 const (
 	ErrNotFound   ErrorCode = "NOT_FOUND"
 	ErrValidation ErrorCode = "VALIDATION_ERR"
+	ErrParse      ErrorCode = "PARSE_ERR"
 	ErrCore       ErrorCode = "MEDOVUKHA_CORE_ERR"
 	ErrWeb        ErrorCode = "MEDOVUKHA_WEB_ERR"
 )
