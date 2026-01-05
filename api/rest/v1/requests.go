@@ -6,13 +6,12 @@ import (
 
 	dockerpb "github.com/Szent7/medovukha-web/api/docker/v1"
 	"github.com/Szent7/medovukha-web/api/rest/v1/types"
+	"github.com/Szent7/medovukha-web/api/validation"
 
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
-
-const mimeTypeJson = "application/json"
 
 type API struct {
 	rpcClient dockerpb.DockerServiceClient
@@ -39,9 +38,8 @@ func (a *API) GetContainerList(c *gin.Context) {
 
 func (a *API) PauseContainerByID(c *gin.Context) {
 	var req types.BaseID
-	if err := c.BindJSON(&req); err != nil {
-		c.IndentedJSON(http.StatusInternalServerError,
-			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrWeb, Message: err.Error()}))
+	if err := c.ShouldBindJSON(&req); err != nil {
+		validation.HandleBindError(c, err)
 		log.Printf("parse error: %s\n", err.Error())
 		return
 	}
@@ -59,9 +57,8 @@ func (a *API) PauseContainerByID(c *gin.Context) {
 
 func (a *API) UnpauseContainerByID(c *gin.Context) {
 	var req types.BaseID
-	if err := c.BindJSON(&req); err != nil {
-		c.IndentedJSON(http.StatusInternalServerError,
-			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrWeb, Message: err.Error()}))
+	if err := c.ShouldBindJSON(&req); err != nil {
+		validation.HandleBindError(c, err)
 		log.Printf("parse error: %s\n", err.Error())
 		return
 	}
@@ -80,8 +77,7 @@ func (a *API) UnpauseContainerByID(c *gin.Context) {
 func (a *API) KillContainerByID(c *gin.Context) {
 	var req types.BaseID
 	if err := c.BindJSON(&req); err != nil {
-		c.IndentedJSON(http.StatusInternalServerError,
-			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrWeb, Message: err.Error()}))
+		validation.HandleBindError(c, err)
 		log.Printf("parse error: %s\n", err.Error())
 		return
 	}
@@ -99,9 +95,8 @@ func (a *API) KillContainerByID(c *gin.Context) {
 
 func (a *API) StartContainerByID(c *gin.Context) {
 	var req types.BaseID
-	if err := c.BindJSON(&req); err != nil {
-		c.IndentedJSON(http.StatusInternalServerError,
-			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrWeb, Message: err.Error()}))
+	if err := c.ShouldBindJSON(&req); err != nil {
+		validation.HandleBindError(c, err)
 		log.Printf("parse error: %s\n", err.Error())
 		return
 	}
@@ -120,8 +115,7 @@ func (a *API) StartContainerByID(c *gin.Context) {
 func (a *API) StopContainerByID(c *gin.Context) {
 	var req types.BaseID
 	if err := c.BindJSON(&req); err != nil {
-		c.IndentedJSON(http.StatusInternalServerError,
-			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrWeb, Message: err.Error()}))
+		validation.HandleBindError(c, err)
 		log.Printf("parse error: %s\n", err.Error())
 		return
 	}
@@ -139,9 +133,8 @@ func (a *API) StopContainerByID(c *gin.Context) {
 
 func (a *API) RestartContainerByID(c *gin.Context) {
 	var req types.BaseID
-	if err := c.BindJSON(&req); err != nil {
-		c.IndentedJSON(http.StatusInternalServerError,
-			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrWeb, Message: err.Error()}))
+	if err := c.ShouldBindJSON(&req); err != nil {
+		validation.HandleBindError(c, err)
 		log.Printf("parse error: %s\n", err.Error())
 		return
 	}
@@ -160,8 +153,7 @@ func (a *API) RestartContainerByID(c *gin.Context) {
 func (a *API) RemoveContainerByID(c *gin.Context) {
 	var req types.BaseID
 	if err := c.BindJSON(&req); err != nil {
-		c.IndentedJSON(http.StatusInternalServerError,
-			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrWeb, Message: err.Error()}))
+		validation.HandleBindError(c, err)
 		log.Printf("parse error: %s\n", err.Error())
 		return
 	}
@@ -218,15 +210,19 @@ func (a *API) GetVolumeList(c *gin.Context) {
 
 // Deploy
 func (a *API) CreateFromGit(c *gin.Context) {
-	var req dockerpb.CreateFromGitRequest
-	if err := c.BindJSON(&req); err != nil {
-		c.IndentedJSON(http.StatusInternalServerError,
-			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrWeb, Message: err.Error()}))
+	var req types.CreateFromGit
+	if err := c.ShouldBindJSON(&req); err != nil {
+		validation.HandleBindError(c, err)
 		log.Printf("parse error: %s\n", err.Error())
 		return
 	}
 
-	resp, err := a.rpcClient.CreateFromGit(c.Request.Context(), &req)
+	resp, err := a.rpcClient.CreateFromGit(c.Request.Context(), &dockerpb.CreateFromGitRequest{
+		Url:           req.URL,
+		Dockerfile:    req.Dockerfile,
+		DockerCompose: req.DockerCompose,
+		DockerRun:     req.DockerRun,
+	})
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError,
 			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrCore, Message: err.Error()}))

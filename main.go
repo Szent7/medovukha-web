@@ -19,9 +19,6 @@ import (
 func main() {
 	const socketPath = "unix:/tmp/medovukha-core.sock"
 
-	//ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-	//defer cancel()
-
 	conn, err := grpc.NewClient(
 		socketPath,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
