@@ -1,6 +1,15 @@
 package types
 
-type Empty struct{}
+type Response[T any] struct {
+	Success bool      `json:"success"`
+	Error   *APIError `json:"error,omitempty"`
+	Data    *T        `json:"data,omitempty"`
+}
+
+type APIError struct {
+	Code    ErrorCode `json:"code"`
+	Message string    `json:"message"`
+}
 
 type BaseMessage struct {
 	Message string `json:"message"`

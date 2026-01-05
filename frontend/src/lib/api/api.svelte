@@ -13,7 +13,8 @@
 		type ListVolumeBaseInfo,
 		type DeployFromGitInfo,
 		BuildIDScheme,
-		type BuildIDMessage
+		type BuildIDMessage,
+		createResponseScheme
 	} from './types.svelte';
 
 	export async function PingBack() {
@@ -25,9 +26,9 @@
 	export async function GetContainerList() {
 		try {
 			const response = await axios.get('http://localhost:10015/rest/v1/getContainerList');
-			const containers: ListContainerBaseInfo = ListContainerBaseInfoScheme.parse(response.data);
-			//console.log("responseData:" + containers);
-			return containers;
+			const ResponseSchema = createResponseScheme(ListContainerBaseInfoScheme);
+			const parsed = ResponseSchema.parse(response.data);
+			return parsed.data;
 		} catch (error) {
 			console.error('Error GET ContainerList:', error);
 		}
@@ -170,9 +171,9 @@
 	export async function GetImageList() {
 		try {
 			const response = await axios.get('http://localhost:10015/rest/v1/getImageList');
-			const images: ListImageBaseInfo = ListImageBaseInfoScheme.parse(response.data);
-			//console.log("responseData:" + containers);
-			return images;
+			const ResponseSchema = createResponseScheme(ListImageBaseInfoScheme);
+			const parsed = ResponseSchema.parse(response.data);
+			return parsed.data;
 		} catch (error) {
 			console.error('Error GET ImageList:', error);
 		}
@@ -182,9 +183,9 @@
 	export async function GetNetworkList() {
 		try {
 			const response = await axios.get('http://localhost:10015/rest/v1/getNetworkList');
-			const networks: ListNetworkBaseInfo = ListNetworkBaseInfoScheme.parse(response.data);
-			//console.log("responseData:" + containers);
-			return networks;
+			const ResponseSchema = createResponseScheme(ListNetworkBaseInfoScheme);
+			const parsed = ResponseSchema.parse(response.data);
+			return parsed.data;
 		} catch (error) {
 			console.error('Error GET NetworkList:', error);
 		}
@@ -194,9 +195,9 @@
 	export async function GetVolumeList() {
 		try {
 			const response = await axios.get('http://localhost:10015/rest/v1/getVolumeList');
-			const volumes: ListVolumeBaseInfo = ListVolumeBaseInfoScheme.parse(response.data);
-			//console.log("responseData:" + containers);
-			return volumes;
+			const ResponseSchema = createResponseScheme(ListVolumeBaseInfoScheme);
+			const parsed = ResponseSchema.parse(response.data);
+			return parsed.data;
 		} catch (error) {
 			console.error('Error GET VolumeList:', error);
 		}
@@ -209,9 +210,9 @@
 				'http://localhost:10015/rest/v1/createFromGit',
 				deployGitInfo
 			);
-
-			const buildID: BuildIDMessage = BuildIDScheme.parse(response.data);
-			return buildID;
+			const ResponseSchema = createResponseScheme(BuildIDScheme);
+			const parsed = ResponseSchema.parse(response.data);
+			return parsed.data;
 		} catch (error) {
 			console.error('Error POST createFromGit:', error);
 		}
