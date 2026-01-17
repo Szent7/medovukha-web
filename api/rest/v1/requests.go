@@ -76,7 +76,7 @@ func (a *API) UnpauseContainerByID(c *gin.Context) {
 
 func (a *API) KillContainerByID(c *gin.Context) {
 	var req types.BaseID
-	if err := c.BindJSON(&req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		validation.HandleBindError(c, err)
 		log.Printf("parse error: %s\n", err.Error())
 		return
@@ -114,7 +114,7 @@ func (a *API) StartContainerByID(c *gin.Context) {
 
 func (a *API) StopContainerByID(c *gin.Context) {
 	var req types.BaseID
-	if err := c.BindJSON(&req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		validation.HandleBindError(c, err)
 		log.Printf("parse error: %s\n", err.Error())
 		return
@@ -152,7 +152,7 @@ func (a *API) RestartContainerByID(c *gin.Context) {
 
 func (a *API) RemoveContainerByID(c *gin.Context) {
 	var req types.BaseID
-	if err := c.BindJSON(&req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		validation.HandleBindError(c, err)
 		log.Printf("parse error: %s\n", err.Error())
 		return
@@ -182,6 +182,25 @@ func (a *API) GetImageList(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, types.NewSuccess(resp))
 }
 
+func (a *API) RemoveImage(c *gin.Context) {
+	var req types.BaseID
+	if err := c.ShouldBindJSON(&req); err != nil {
+		validation.HandleBindError(c, err)
+		log.Printf("parse error: %s\n", err.Error())
+		return
+	}
+
+	resp, err := a.rpcClient.RemoveImage(c.Request.Context(), &dockerpb.RemoveImageRequest{Id: req.ID, Force: req.Force})
+	if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError,
+			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrCore, Message: err.Error()}))
+		log.Printf("gRPC error: %s\n", err.Error())
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, types.NewSuccess(resp))
+}
+
 // Networks
 func (a *API) GetNetworkList(c *gin.Context) {
 	resp, err := a.rpcClient.GetNetworkList(c.Request.Context(), &dockerpb.GetNetworkListRequest{})
@@ -195,9 +214,47 @@ func (a *API) GetNetworkList(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, types.NewSuccess(resp))
 }
 
+func (a *API) RemoveNetwork(c *gin.Context) {
+	var req types.BaseID
+	if err := c.ShouldBindJSON(&req); err != nil {
+		validation.HandleBindError(c, err)
+		log.Printf("parse error: %s\n", err.Error())
+		return
+	}
+
+	resp, err := a.rpcClient.RemoveNetwork(c.Request.Context(), &dockerpb.RemoveNetworkRequest{Id: req.ID})
+	if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError,
+			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrCore, Message: err.Error()}))
+		log.Printf("gRPC error: %s\n", err.Error())
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, types.NewSuccess(resp))
+}
+
 // Volumes
 func (a *API) GetVolumeList(c *gin.Context) {
 	resp, err := a.rpcClient.GetVolumeList(c.Request.Context(), &dockerpb.GetVolumeListRequest{})
+	if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError,
+			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrCore, Message: err.Error()}))
+		log.Printf("gRPC error: %s\n", err.Error())
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, types.NewSuccess(resp))
+}
+
+func (a *API) RemoveVolume(c *gin.Context) {
+	var req types.BaseID
+	if err := c.ShouldBindJSON(&req); err != nil {
+		validation.HandleBindError(c, err)
+		log.Printf("parse error: %s\n", err.Error())
+		return
+	}
+
+	resp, err := a.rpcClient.RemoveVolume(c.Request.Context(), &dockerpb.RemoveVolumeRequest{Id: req.ID, Force: req.Force})
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError,
 			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrCore, Message: err.Error()}))

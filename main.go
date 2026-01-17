@@ -76,10 +76,13 @@ func main() {
 			v1.POST("/removeContainerById", api.RemoveContainerByID)
 			//Images
 			v1.GET("/getImageList", api.GetImageList)
+			v1.POST("/removeImage", api.RemoveImage)
 			//Networks
 			v1.GET("/getNetworkList", api.GetNetworkList)
+			v1.POST("/removeNetwork", api.RemoveNetwork)
 			//Volumes
 			v1.GET("/getVolumeList", api.GetVolumeList)
+			v1.POST("/removeVolume", api.RemoveVolume)
 			//Deploy
 			v1.POST("/createFromGit", api.CreateFromGit)
 		}

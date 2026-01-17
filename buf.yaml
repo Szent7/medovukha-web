@@ -1,5 +1,7 @@
 version: "v2"
-root: api
+
+modules:
+  - path: api
 lint:
   use:
-    - DEFAULT
+    - STANDARD
