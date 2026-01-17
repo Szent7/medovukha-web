@@ -4,6 +4,10 @@ import (
 	"context"
 	"log"
 	"net"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	dockerpb "github.com/Szent7/medovukha-web/api/docker/v1"
@@ -19,7 +23,7 @@ import (
 func main() {
 	const socketPath = "unix:/tmp/medovukha-core.sock"
 
-	conn, err := grpc.NewClient(
+	grpcClient, err := grpc.NewClient(
 		socketPath,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithContextDialer(func(ctx context.Context, addr string) (net.Conn, error) {
@@ -29,9 +33,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to create grpc client: %s", err.Error())
 	}
-	defer conn.Close()
 
-	rpcClient := dockerpb.NewDockerServiceClient(conn)
+	rpcClient := dockerpb.NewDockerServiceClient(grpcClient)
 
 	api := rest.NewAPI(rpcClient)
 
@@ -88,5 +91,36 @@ func main() {
 		}
 	}
 
-	router.Run("0.0.0.0:10015")
+	srv := &http.Server{
+		Addr:    ":10015",
+		Handler: router,
+	}
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("listen: %s", err.Error())
+		}
+	}()
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+
+	sig := <-sigCh
+	log.Printf("received signal %s, shutting down...\n", sig)
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if grpcClient != nil {
+		if err := grpcClient.Close(); err != nil {
+			log.Printf("error while closing gRPC service (dockerService): %s\n", err.Error())
+		}
+	}
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		log.Printf("error while closing gRPC client (dockerService): %s\n", err.Error())
+	}
+
+	<-shutdownCtx.Done()
+	log.Println("Shutdown complete")
 }
