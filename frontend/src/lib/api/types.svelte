@@ -21,6 +21,12 @@
 	// ContainerIdMessage
 	//
 	//
+	export const RemoveIdMessageScheme = z.object({
+		id: z.string(),
+		force: z.boolean().optional()
+	});
+	export type RemoveIdMessage = z.infer<typeof RemoveIdMessageScheme>;
+
 	export const ContainerIdMessageScheme = z.object({
 		id: z.string()
 	});
@@ -69,7 +75,8 @@
 		id: z.string(),
 		tags: z.array(z.string()),
 		size: z.number(),
-		created: z.number()
+		created: z.number(),
+		is_used: z.boolean().optional()
 	});
 	export type ImageBaseInfo = z.infer<typeof ImageBaseInfoScheme>;
 
@@ -91,7 +98,8 @@
 		subnet: z.array(z.string()).optional(),
 		gateway: z.array(z.string()).optional(),
 		attachable: z.boolean().optional(),
-		docker_network: z.boolean().optional()
+		docker_network: z.boolean().optional(),
+		is_used: z.boolean().optional()
 	});
 	export type NetworkBaseInfo = z.infer<typeof NetworkBaseInfoScheme>;
 
@@ -108,7 +116,8 @@
 		name: z.string(),
 		driver: z.string(),
 		mountpoint: z.string(),
-		created: z.string()
+		created: z.string(),
+		is_used: z.boolean().optional()
 	});
 	export type VolumeBaseInfo = z.infer<typeof VolumeBaseInfoScheme>;
 

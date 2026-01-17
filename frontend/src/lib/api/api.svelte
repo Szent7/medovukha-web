@@ -5,16 +5,11 @@
 		ListImageBaseInfoScheme,
 		ListNetworkBaseInfoScheme,
 		ListVolumeBaseInfoScheme,
-		DeployFromGitScheme,
-		type ListContainerBaseInfo,
 		type ContainerIdMessage,
-		type ListImageBaseInfo,
-		type ListNetworkBaseInfo,
-		type ListVolumeBaseInfo,
 		type DeployFromGitInfo,
 		BuildIDScheme,
-		type BuildIDMessage,
-		createResponseScheme
+		createResponseScheme,
+		type RemoveIdMessage
 	} from './types.svelte';
 
 	export async function PingBack() {
@@ -39,10 +34,7 @@
 			id: id
 		};
 		try {
-			const response = await axios.post(
-				'http://localhost:10015/rest/v1/pauseContainerById',
-				container
-			);
+			await axios.post('http://localhost:10015/rest/v1/pauseContainerById', container);
 			/*const containers: ContainerBaseInfo = ContainerBaseInfoScheme.parse(
                 response.data,
             );
@@ -58,10 +50,7 @@
 			id: id
 		};
 		try {
-			const response = await axios.post(
-				'http://localhost:10015/rest/v1/unpauseContainerById',
-				container
-			);
+			await axios.post('http://localhost:10015/rest/v1/unpauseContainerById', container);
 			/*const containers: ContainerBaseInfo = ContainerBaseInfoScheme.parse(
                 response.data,
             );
@@ -77,10 +66,7 @@
 			id: id
 		};
 		try {
-			const response = await axios.post(
-				'http://localhost:10015/rest/v1/killContainerById',
-				container
-			);
+			await axios.post('http://localhost:10015/rest/v1/killContainerById', container);
 			/*const containers: ContainerBaseInfo = ContainerBaseInfoScheme.parse(
                 response.data,
             );
@@ -96,10 +82,7 @@
 			id: id
 		};
 		try {
-			const response = await axios.post(
-				'http://localhost:10015/rest/v1/startContainerById',
-				container
-			);
+			await axios.post('http://localhost:10015/rest/v1/startContainerById', container);
 			/*const containers: ContainerBaseInfo = ContainerBaseInfoScheme.parse(
                 response.data,
             );
@@ -115,10 +98,7 @@
 			id: id
 		};
 		try {
-			const response = await axios.post(
-				'http://localhost:10015/rest/v1/stopContainerById',
-				container
-			);
+			await axios.post('http://localhost:10015/rest/v1/stopContainerById', container);
 			/*const containers: ContainerBaseInfo = ContainerBaseInfoScheme.parse(
                 response.data,
             );
@@ -134,10 +114,7 @@
 			id: id
 		};
 		try {
-			const response = await axios.post(
-				'http://localhost:10015/rest/v1/restartContainerById',
-				container
-			);
+			await axios.post('http://localhost:10015/rest/v1/restartContainerById', container);
 			/*const containers: ContainerBaseInfo = ContainerBaseInfoScheme.parse(
                 response.data,
             );
@@ -153,10 +130,7 @@
 			id: id
 		};
 		try {
-			const response = await axios.post(
-				'http://localhost:10015/rest/v1/removeContainerById',
-				container
-			);
+			await axios.post('http://localhost:10015/rest/v1/removeContainerById', container);
 			/*const containers: ContainerBaseInfo = ContainerBaseInfoScheme.parse(
                 response.data,
             );
@@ -179,6 +153,23 @@
 		}
 	}
 
+	export async function RemoveImageById(id: string, force: boolean) {
+		const image: RemoveIdMessage = {
+			id: id,
+			force: force
+		};
+		try {
+			await axios.post('http://localhost:10015/rest/v1/removeImage', image);
+			/*const containers: ContainerBaseInfo = ContainerBaseInfoScheme.parse(
+                response.data,
+            );
+            console.log("responseData:" + containers);
+            return containers;*/
+		} catch (error) {
+			console.error('Error POST RemoveImageById:', error);
+		}
+	}
+
 	//Networks
 	export async function GetNetworkList() {
 		try {
@@ -191,6 +182,22 @@
 		}
 	}
 
+	export async function RemoveNetworkById(id: string) {
+		const network: RemoveIdMessage = {
+			id: id
+		};
+		try {
+			await axios.post('http://localhost:10015/rest/v1/removeNetwork', network);
+			/*const containers: ContainerBaseInfo = ContainerBaseInfoScheme.parse(
+                response.data,
+            );
+            console.log("responseData:" + containers);
+            return containers;*/
+		} catch (error) {
+			console.error('Error POST RemoveNetworkById:', error);
+		}
+	}
+
 	//Volumes
 	export async function GetVolumeList() {
 		try {
@@ -200,6 +207,23 @@
 			return parsed.data;
 		} catch (error) {
 			console.error('Error GET VolumeList:', error);
+		}
+	}
+
+	export async function RemoveVolumeById(id: string, force: boolean) {
+		const volume: RemoveIdMessage = {
+			id: id,
+			force: force
+		};
+		try {
+			await axios.post('http://localhost:10015/rest/v1/removeVolume', volume);
+			/*const containers: ContainerBaseInfo = ContainerBaseInfoScheme.parse(
+                response.data,
+            );
+            console.log("responseData:" + containers);
+            return containers;*/
+		} catch (error) {
+			console.error('Error POST RemoveVolumeById:', error);
 		}
 	}
 
