@@ -1,17 +1,31 @@
 import { requestApi, requestApiNoData } from '$lib/core/http/request';
-import { ListImageBaseInfoSchema, type ListImageBaseInfo, type RemoveIdMessage } from './types';
+import {
+	ImageBaseInfoResponseSchema,
+	ListImageBaseInfoSchema,
+	type ImageBaseInfo,
+	type RemoveIdMessage
+} from './types';
 
-export function getImageList(): Promise<ListImageBaseInfo> {
+export function getImageList() {
 	return requestApi({ method: 'get', url: '/rest/v1/getImageList' }, ListImageBaseInfoSchema, {
-		errorTitle: 'Не удалось загрузить список образов'
+		errorTitle: 'Failed to load image list'
 	});
+}
+
+export async function getImageById(payload: { id: string }): Promise<ImageBaseInfo> {
+	const resp = await requestApi(
+		{ method: 'post', url: '/rest/v1/getImageById', data: payload },
+		ImageBaseInfoResponseSchema,
+		{ errorTitle: 'Failed to load image' }
+	);
+	return resp.item;
 }
 
 export function removeImage(payload: RemoveIdMessage): Promise<void> {
 	return requestApiNoData(
 		{ method: 'post', url: '/rest/v1/removeImage', data: payload },
 		{
-			errorTitle: 'Не удалось удалить образ'
+			errorTitle: 'Failed to delete image'
 		}
 	);
 }

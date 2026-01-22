@@ -26,6 +26,11 @@ export const ListContainerBaseInfoSchema = z.object({
 });
 export type ListContainerBaseInfo = z.infer<typeof ListContainerBaseInfoSchema>;
 
+export const ContainerBaseInfoResponseSchema = z.object({
+	item: ContainerBaseInfoSchema
+});
+export type ContainerBaseInfoResponse = z.infer<typeof ContainerBaseInfoResponseSchema>;
+
 export const ContainerIdMessageSchema = z.object({ id: z.string() });
 export type ContainerIdMessage = z.infer<typeof ContainerIdMessageSchema>;
 

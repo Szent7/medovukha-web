@@ -1,17 +1,32 @@
 import { requestApi, requestApiNoData } from '$lib/core/http/request';
-import { ListVolumeBaseInfoSchema, type ListVolumeBaseInfo, type RemoveIdMessage } from './types';
+import {
+	ListVolumeBaseInfoSchema,
+	VolumeBaseInfoResponseSchema,
+	type ListVolumeBaseInfo,
+	type RemoveIdMessage,
+	type VolumeBaseInfo
+} from './types';
 
 export function getVolumeList(): Promise<ListVolumeBaseInfo> {
 	return requestApi({ method: 'get', url: '/rest/v1/getVolumeList' }, ListVolumeBaseInfoSchema, {
-		errorTitle: 'Не удалось загрузить список томов'
+		errorTitle: 'Failed to load volume list'
 	});
+}
+
+export async function getVolumeById(payload: { id: string }): Promise<VolumeBaseInfo> {
+	const resp = await requestApi(
+		{ method: 'post', url: '/rest/v1/getVolumeById', data: payload },
+		VolumeBaseInfoResponseSchema,
+		{ errorTitle: 'Failed to load volume' }
+	);
+	return resp.item;
 }
 
 export function removeVolume(payload: RemoveIdMessage): Promise<void> {
 	return requestApiNoData(
 		{ method: 'post', url: '/rest/v1/removeVolume', data: payload },
 		{
-			errorTitle: 'Не удалось удалить том'
+			errorTitle: 'Failed to delete volume'
 		}
 	);
 }

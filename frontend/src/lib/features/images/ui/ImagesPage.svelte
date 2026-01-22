@@ -1,15 +1,19 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import Card from '$lib/shared/ui/Card.svelte';
 	import PageHeader from '$lib/shared/ui/PageHeader.svelte';
 	import Badge from '$lib/shared/ui/Badge.svelte';
 	import { formatId, sizeFormat, unixTimeFormat } from '$lib/shared/utils/format';
-	import { getImageList, removeImage } from '../api';
-	import type { ListImageBaseInfo } from '../types';
+	import { wsUrl } from '$lib/core/http/client';
+	import { notifyError } from '$lib/app/notifications/store';
+	import { getImageById, getImageList, removeImage } from '../api';
+	import { ImageEventSchema, type ListImageBaseInfo } from '../types';
 
 	let imgList: ListImageBaseInfo = { items: [] };
 	let loading = true;
 	let selectedIds: string[] = [];
+
+	let socket: WebSocket | null = null;
 
 	$: canRemove =
 		selectedIds.length > 0 &&
@@ -31,7 +35,77 @@
 		}
 	}
 
-	onMount(refresh);
+	onMount(() => {
+		refresh();
+		connectEvents();
+	});
+
+	function updateImageUsedById(id: string, isUsed: boolean) {
+		const idx = imgList.items.findIndex((i) => i.id === id);
+		if (idx === -1) return;
+		const newItems = [...imgList.items];
+		newItems[idx] = { ...newItems[idx], is_used: isUsed };
+		imgList = { items: newItems };
+	}
+
+	function removeFromListById(id: string) {
+		imgList = { items: imgList.items.filter((i) => i.id !== id) };
+		selectedIds = selectedIds.filter((x) => x !== id);
+	}
+
+	function upsertIntoList(item: (typeof imgList.items)[number]) {
+		const idx = imgList.items.findIndex((i) => i.id === item.id);
+		if (idx === -1) {
+			imgList = { items: [item, ...imgList.items] };
+			return;
+		}
+		const newItems = [...imgList.items];
+		newItems[idx] = { ...newItems[idx], ...item };
+		imgList = { items: newItems };
+	}
+
+	function connectEvents() {
+		try {
+			socket = new WebSocket(wsUrl('/ws/imageEvents'));
+			socket.addEventListener('message', (e) => {
+				try {
+					const parsed = ImageEventSchema.parse(JSON.parse(String(e.data)));
+					const action = parsed.action;
+					const id = parsed.actor.id;
+					if (['remove', 'delete', 'destroy'].includes(action)) {
+						removeFromListById(id);
+						return;
+					}
+
+					if (action === 'create') {
+						getImageById({ id })
+							.then((item) => upsertIntoList(item))
+							.catch(() => {
+								// requestApi already notifies
+							});
+						return;
+					}
+
+					//if (['destroy'].includes(action)) return;
+					if (['tag', 'untag'].includes(action)) return;
+					if (action === 'prune') return;
+					if (action === 'use') updateImageUsedById(id, true);
+					if (action === 'unuse') updateImageUsedById(id, false);
+				} catch (err) {
+					notifyError(err, 'Wrong WebSocket-message');
+				}
+			});
+			socket.addEventListener('error', (e) => {
+				notifyError(new Error(String(e)), 'WebSocket error');
+			});
+		} catch (err) {
+			notifyError(err, 'WebSocket error');
+		}
+	}
+
+	onDestroy(() => {
+		socket?.close();
+	});
 
 	function toggleSelected(id: string, checked: boolean) {
 		selectedIds = checked ? [...selectedIds, id] : selectedIds.filter((x) => x !== id);

@@ -20,6 +20,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const retryPolicy = `{
+		"methodConfig": [{
+		  "name": [{"service": "docker.v1.DockerService"}],
+		  "retryPolicy": {
+			  "MaxAttempts": 4,
+			  "InitialBackoff": ".01s",
+			  "MaxBackoff": ".01s",
+			  "BackoffMultiplier": 1.0,
+			  "RetryableStatusCodes": [ "UNAVAILABLE" ]
+		  }
+		}]}`
+
 func main() {
 	const socketPath = "unix:/tmp/medovukha-core.sock"
 
@@ -29,6 +41,7 @@ func main() {
 		grpc.WithContextDialer(func(ctx context.Context, addr string) (net.Conn, error) {
 			return net.DialTimeout("unix", addr[len("unix:"):], 5*time.Second)
 		}),
+		grpc.WithDefaultServiceConfig(retryPolicy),
 	)
 	if err != nil {
 		log.Fatalf("failed to create grpc client: %s", err.Error())
@@ -61,6 +74,9 @@ func main() {
 	ws := router.Group("/ws")
 	{
 		ws.GET("/containerEvents", websockets.WsContainerEventsHandler(wsHub))
+		ws.GET("/imageEvents", websockets.WsImageEventsHandler(wsHub))
+		ws.GET("/networkEvents", websockets.WsNetworkEventsHandler(wsHub))
+		ws.GET("/volumeEvents", websockets.WsVolumeEventsHandler(wsHub))
 		ws.GET("/buildLogs", websockets.WsBuildLogsHandler(wsHub))
 	}
 
@@ -69,6 +85,7 @@ func main() {
 		v1 := rest.Group("/v1")
 		{
 			//Containers
+			v1.POST("/getContainerById", api.GetContainerByID)
 			v1.GET("/getContainerList", api.GetContainerList)
 			v1.POST("/pauseContainerById", api.PauseContainerByID)
 			v1.POST("/unpauseContainerById", api.UnpauseContainerByID)
@@ -78,12 +95,15 @@ func main() {
 			v1.POST("/restartContainerById", api.RestartContainerByID)
 			v1.POST("/removeContainerById", api.RemoveContainerByID)
 			//Images
+			v1.POST("/getImageById", api.GetImageByID)
 			v1.GET("/getImageList", api.GetImageList)
 			v1.POST("/removeImage", api.RemoveImage)
 			//Networks
+			v1.POST("/getNetworkById", api.GetNetworkByID)
 			v1.GET("/getNetworkList", api.GetNetworkList)
 			v1.POST("/removeNetwork", api.RemoveNetwork)
 			//Volumes
+			v1.POST("/getVolumeById", api.GetVolumeByID)
 			v1.GET("/getVolumeList", api.GetVolumeList)
 			v1.POST("/removeVolume", api.RemoveVolume)
 			//Deploy

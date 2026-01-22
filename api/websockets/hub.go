@@ -12,6 +12,9 @@ import (
 
 const (
 	containerEventStreamGroup = "container-events"
+	imageEventStreamGroup     = "image-events"
+	networkEventStreamGroup   = "network-events"
+	volumeEventStreamGroup    = "volume-events"
 	buildLogStreamGroup       = "build-container-"
 )
 

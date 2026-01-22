@@ -36,6 +36,25 @@ func (a *API) GetContainerList(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, types.NewSuccess(resp))
 }
 
+func (a *API) GetContainerByID(c *gin.Context) {
+	var req types.BaseID
+	if err := c.ShouldBindJSON(&req); err != nil {
+		validation.HandleBindError(c, err)
+		log.Printf("parse error: %s\n", err.Error())
+		return
+	}
+
+	resp, err := a.rpcClient.GetContainerByID(c.Request.Context(), &dockerpb.GetContainerByIDRequest{Id: req.ID})
+	if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError,
+			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrCore, Message: err.Error()}))
+		log.Printf("gRPC error: %s\n", err.Error())
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, types.NewSuccess(resp))
+}
+
 func (a *API) PauseContainerByID(c *gin.Context) {
 	var req types.BaseID
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -182,6 +201,25 @@ func (a *API) GetImageList(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, types.NewSuccess(resp))
 }
 
+func (a *API) GetImageByID(c *gin.Context) {
+	var req types.BaseID
+	if err := c.ShouldBindJSON(&req); err != nil {
+		validation.HandleBindError(c, err)
+		log.Printf("parse error: %s\n", err.Error())
+		return
+	}
+
+	resp, err := a.rpcClient.GetImageByID(c.Request.Context(), &dockerpb.GetImageByIDRequest{Id: req.ID})
+	if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError,
+			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrCore, Message: err.Error()}))
+		log.Printf("gRPC error: %s\n", err.Error())
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, types.NewSuccess(resp))
+}
+
 func (a *API) RemoveImage(c *gin.Context) {
 	var req types.BaseID
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -214,6 +252,25 @@ func (a *API) GetNetworkList(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, types.NewSuccess(resp))
 }
 
+func (a *API) GetNetworkByID(c *gin.Context) {
+	var req types.BaseID
+	if err := c.ShouldBindJSON(&req); err != nil {
+		validation.HandleBindError(c, err)
+		log.Printf("parse error: %s\n", err.Error())
+		return
+	}
+
+	resp, err := a.rpcClient.GetNetworkByID(c.Request.Context(), &dockerpb.GetNetworkByIDRequest{Id: req.ID})
+	if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError,
+			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrCore, Message: err.Error()}))
+		log.Printf("gRPC error: %s\n", err.Error())
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, types.NewSuccess(resp))
+}
+
 func (a *API) RemoveNetwork(c *gin.Context) {
 	var req types.BaseID
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -236,6 +293,25 @@ func (a *API) RemoveNetwork(c *gin.Context) {
 // Volumes
 func (a *API) GetVolumeList(c *gin.Context) {
 	resp, err := a.rpcClient.GetVolumeList(c.Request.Context(), &dockerpb.GetVolumeListRequest{})
+	if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError,
+			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrCore, Message: err.Error()}))
+		log.Printf("gRPC error: %s\n", err.Error())
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, types.NewSuccess(resp))
+}
+
+func (a *API) GetVolumeByID(c *gin.Context) {
+	var req types.BaseID
+	if err := c.ShouldBindJSON(&req); err != nil {
+		validation.HandleBindError(c, err)
+		log.Printf("parse error: %s\n", err.Error())
+		return
+	}
+
+	resp, err := a.rpcClient.GetVolumeByID(c.Request.Context(), &dockerpb.GetVolumeByIDRequest{Id: req.ID})
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError,
 			types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrCore, Message: err.Error()}))
@@ -310,6 +386,57 @@ func (a *API) StreamBuildLogs(ctx context.Context, buildID string, logCh chan<- 
 // Events
 func (a *API) GetContainerState(ctx context.Context, eventCh chan<- *dockerpb.GetContainerStateResponse, errCh chan<- error) {
 	stream, err := a.rpcClient.GetContainerState(ctx, &dockerpb.GetContainerStateRequest{})
+	if err != nil {
+		errCh <- err
+		return
+	}
+
+	for {
+		event, err := stream.Recv()
+		if err != nil {
+			errCh <- err
+			return
+		}
+		eventCh <- event
+	}
+}
+
+func (a *API) GetImageState(ctx context.Context, eventCh chan<- *dockerpb.GetImageStateResponse, errCh chan<- error) {
+	stream, err := a.rpcClient.GetImageState(ctx, &dockerpb.GetImageStateRequest{})
+	if err != nil {
+		errCh <- err
+		return
+	}
+
+	for {
+		event, err := stream.Recv()
+		if err != nil {
+			errCh <- err
+			return
+		}
+		eventCh <- event
+	}
+}
+
+func (a *API) GetNetworkState(ctx context.Context, eventCh chan<- *dockerpb.GetNetworkStateResponse, errCh chan<- error) {
+	stream, err := a.rpcClient.GetNetworkState(ctx, &dockerpb.GetNetworkStateRequest{})
+	if err != nil {
+		errCh <- err
+		return
+	}
+
+	for {
+		event, err := stream.Recv()
+		if err != nil {
+			errCh <- err
+			return
+		}
+		eventCh <- event
+	}
+}
+
+func (a *API) GetVolumeState(ctx context.Context, eventCh chan<- *dockerpb.GetVolumeStateResponse, errCh chan<- error) {
+	stream, err := a.rpcClient.GetVolumeState(ctx, &dockerpb.GetVolumeStateRequest{})
 	if err != nil {
 		errCh <- err
 		return

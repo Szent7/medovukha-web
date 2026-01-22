@@ -19,5 +19,19 @@ export const ListNetworkBaseInfoSchema = z.object({
 });
 export type ListNetworkBaseInfo = z.infer<typeof ListNetworkBaseInfoSchema>;
 
+export const NetworkBaseInfoResponseSchema = z.object({
+	item: NetworkBaseInfoSchema
+});
+export type NetworkBaseInfoResponse = z.infer<typeof NetworkBaseInfoResponseSchema>;
+
+export const NetworkEventSchema = z.object({
+	type: z.string(),
+	action: z.string(),
+	actor: z.object({
+		id: z.string()
+	})
+});
+export type NetworkEvent = z.infer<typeof NetworkEventSchema>;
+
 export const RemoveIdMessageSchema = z.object({ id: z.string() });
 export type RemoveIdMessage = z.infer<typeof RemoveIdMessageSchema>;

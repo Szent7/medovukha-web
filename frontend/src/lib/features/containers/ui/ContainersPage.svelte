@@ -7,6 +7,7 @@
 	import { wsUrl } from '$lib/core/http/client';
 	import { notifyError } from '$lib/app/notifications/store';
 	import {
+		getContainerById,
 		getContainerList,
 		killContainerById,
 		pauseContainerById,
@@ -74,6 +75,22 @@
 		conList = { items: newItems };
 	}
 
+	function removeFromListById(id: string) {
+		conList = { items: conList.items.filter((c) => c.id !== id) };
+		selectedIds = selectedIds.filter((x) => x !== id);
+	}
+
+	function upsertIntoList(item: (typeof conList.items)[number]) {
+		const idx = conList.items.findIndex((c) => c.id === item.id);
+		if (idx === -1) {
+			conList = { items: [item, ...conList.items] };
+			return;
+		}
+		const newItems = [...conList.items];
+		newItems[idx] = { ...newItems[idx], ...item };
+		conList = { items: newItems };
+	}
+
 	function connectEvents() {
 		try {
 			socket = new WebSocket(wsUrl('/ws/containerEvents'));
@@ -83,14 +100,25 @@
 					const action = parsed.action;
 					const id = parsed.actor.id;
 
-					if (['create', 'delete', 'remove', 'destroy'].includes(action)) {
-						refresh();
+					if (['remove', 'delete', 'destroy'].includes(action)) {
+						removeFromListById(id);
 						return;
 					}
+
+					if (action === 'create') {
+						getContainerById({ id })
+							.then((item) => upsertIntoList(item))
+							.catch(() => {
+								// requestApi already notifies
+							});
+						return;
+					}
+
+					//if (['destroy'].includes(action)) return;
 					const newState = actionToState[action];
 					if (newState) setContainerState(id, newState);
 				} catch (err) {
-					notifyError(err, 'Некорректное WebSocket-сообщение');
+					notifyError(err, 'Wrong WebSocket-message');
 				}
 			});
 			socket.addEventListener('error', (e) => {
@@ -151,7 +179,7 @@
 		} catch {
 			// requestApi already notifies
 		} finally {
-			await refresh();
+			// refresh()
 		}
 	}
 

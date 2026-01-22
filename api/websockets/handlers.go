@@ -30,6 +30,51 @@ func WsContainerEventsHandler(hub *Hub) gin.HandlerFunc {
 	}
 }
 
+func WsImageEventsHandler(hub *Hub) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+		if err != nil {
+			c.IndentedJSON(http.StatusInternalServerError,
+				types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrWeb, Message: err.Error()}))
+			log.Printf("WsHandler error: %s\n", err.Error())
+			return
+		}
+
+		g := hub.Register(imageEventStreamGroup, conn, hub.ImageEventStreamer)
+		go handleConn(g, conn, hub)
+	}
+}
+
+func WsNetworkEventsHandler(hub *Hub) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+		if err != nil {
+			c.IndentedJSON(http.StatusInternalServerError,
+				types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrWeb, Message: err.Error()}))
+			log.Printf("WsHandler error: %s\n", err.Error())
+			return
+		}
+
+		g := hub.Register(networkEventStreamGroup, conn, hub.NetworkEventStreamer)
+		go handleConn(g, conn, hub)
+	}
+}
+
+func WsVolumeEventsHandler(hub *Hub) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+		if err != nil {
+			c.IndentedJSON(http.StatusInternalServerError,
+				types.NewFailed[types.BaseMessage](types.APIError{Code: types.ErrWeb, Message: err.Error()}))
+			log.Printf("WsHandler error: %s\n", err.Error())
+			return
+		}
+
+		g := hub.Register(volumeEventStreamGroup, conn, hub.VolumeEventStreamer)
+		go handleConn(g, conn, hub)
+	}
+}
+
 func WsBuildLogsHandler(hub *Hub) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		buildID := c.Query("buildID")

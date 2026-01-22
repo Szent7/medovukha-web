@@ -1,15 +1,19 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import Card from '$lib/shared/ui/Card.svelte';
 	import PageHeader from '$lib/shared/ui/PageHeader.svelte';
 	import Badge from '$lib/shared/ui/Badge.svelte';
 	import { formatId } from '$lib/shared/utils/format';
-	import { getNetworkList, removeNetwork } from '../api';
-	import type { ListNetworkBaseInfo } from '../types';
+	import { wsUrl } from '$lib/core/http/client';
+	import { notifyError } from '$lib/app/notifications/store';
+	import { getNetworkById, getNetworkList, removeNetwork } from '../api';
+	import { NetworkEventSchema, type ListNetworkBaseInfo } from '../types';
 
 	let netList: ListNetworkBaseInfo = { items: [] };
 	let loading = true;
 	let selectedIds: string[] = [];
+
+	let socket: WebSocket | null = null;
 
 	$: canRemove = selectedIds.length > 0;
 
@@ -25,7 +29,75 @@
 		}
 	}
 
-	onMount(refresh);
+	function updateNetworkUsedById(id: string, isUsed: boolean) {
+		const idx = netList.items.findIndex((n) => n.id === id);
+		if (idx === -1) return;
+		const newItems = [...netList.items];
+		newItems[idx] = { ...newItems[idx], is_used: isUsed };
+		netList = { items: newItems };
+	}
+
+	function removeFromListById(id: string) {
+		netList = { items: netList.items.filter((n) => n.id !== id) };
+		selectedIds = selectedIds.filter((x) => x !== id);
+	}
+
+	function upsertIntoList(item: (typeof netList.items)[number]) {
+		const idx = netList.items.findIndex((n) => n.id === item.id);
+		if (idx === -1) {
+			netList = { items: [item, ...netList.items] };
+			return;
+		}
+		const newItems = [...netList.items];
+		newItems[idx] = { ...newItems[idx], ...item };
+		netList = { items: newItems };
+	}
+
+	function connectEvents() {
+		try {
+			socket = new WebSocket(wsUrl('/ws/networkEvents'));
+			socket.addEventListener('message', (e) => {
+				try {
+					const parsed = NetworkEventSchema.parse(JSON.parse(String(e.data)));
+					const action = parsed.action;
+					const id = parsed.actor.id;
+					if (['remove', 'delete', 'destroy'].includes(action)) {
+						removeFromListById(id);
+						return;
+					}
+
+					if (action === 'create') {
+						getNetworkById({ id })
+							.then((item) => upsertIntoList(item))
+							.catch(() => {
+								// requestApi already notifies
+							});
+						return;
+					}
+
+					//if (['destroy'].includes(action)) return;
+					if (action === 'use') updateNetworkUsedById(id, true);
+					if (action === 'unuse') updateNetworkUsedById(id, false);
+				} catch (err) {
+					notifyError(err, 'Wrong WebSocket-message');
+				}
+			});
+			socket.addEventListener('error', (e) => {
+				notifyError(new Error(String(e)), 'WebSocket error');
+			});
+		} catch (err) {
+			notifyError(err, 'WebSocket error');
+		}
+	}
+
+	onMount(() => {
+		refresh();
+		connectEvents();
+	});
+
+	onDestroy(() => {
+		socket?.close();
+	});
 
 	function toggleSelected(id: string, checked: boolean) {
 		selectedIds = checked ? [...selectedIds, id] : selectedIds.filter((x) => x !== id);

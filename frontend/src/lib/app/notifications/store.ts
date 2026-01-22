@@ -98,7 +98,7 @@ function formatError(err: unknown): { message: string; details?: string } {
 	}
 
 	if (err instanceof SchemaError) {
-		return { message: 'Некорректный ответ сервера', details: err.message };
+		return { message: 'Wrong server response', details: err.message };
 	}
 
 	if (err instanceof ParseError) {
